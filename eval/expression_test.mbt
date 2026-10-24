@@ -132,6 +132,27 @@ test "array comprehension step exhaustion returns no partial result" {
 }
 
 ///|
+test "array comprehension charges the budget while generating body rows" {
+  let query = "[item | some item in input.items]"
+  let result = @eval.eval_query(
+    query,
+    @value.Value::Object({
+      "items": @value.Value::array([
+        @value.Value::number(@value.Number::parse("1").unwrap()),
+        @value.Value::number(@value.Number::parse("2").unwrap()),
+        @value.Value::number(@value.Number::parse("3").unwrap()),
+        @value.Value::number(@value.Number::parse("4").unwrap()),
+      ]),
+    }),
+    @eval.EvalOptions::new(5),
+  )
+  assert_eq(result.values().length(), 0)
+  assert_eq(result.diagnostics().length(), 1)
+  assert_eq(result.diagnostics()[0].code(), "rego_eval_step_limit")
+  assert_eq(result.diagnostics()[0].primary().start_offset(), 8)
+}
+
+///|
 test "false predicates produce no query results" {
   let result = @eval.eval_query(
     "input.enabled == true",

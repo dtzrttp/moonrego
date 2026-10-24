@@ -150,16 +150,34 @@ fn eval_step(
           }
       }
     }
-    @syntax.Expr::SomeIn(name, collection, _) => {
+    @syntax.Expr::SomeIn(name, collection, span) => {
       guard eval_value(collection, environment, context) is Some(value) else {
         return []
       }
       let results : Array[(Environment, @value.Value)] = []
-      for item in iterable_values(value) {
-        match environment.bind(name, item) {
-          Some(updated) => results.push((updated, item))
-          None => ()
-        }
+      match value {
+        @value.Value::Array(items) | @value.Value::Set(items) =>
+          for item in items {
+            if !context.charge(span) {
+              return []
+            }
+            match environment.bind(name, item) {
+              Some(updated) => results.push((updated, item))
+              None => ()
+            }
+          }
+        @value.Value::Object(fields) =>
+          for (key, _) in fields {
+            if !context.charge(span) {
+              return []
+            }
+            let item = @value.Value::string(key)
+            match environment.bind(name, item) {
+              Some(updated) => results.push((updated, item))
+              None => ()
+            }
+          }
+        _ => ()
       }
       results
     }
@@ -171,6 +189,9 @@ fn eval_step(
       match value {
         @value.Value::Array(items) =>
           for index in 0..<items.length() {
+            if !context.charge(span) {
+              return []
+            }
             match int_value(index) {
               Some(key) =>
                 match environment.bind(key_name, key) {
@@ -186,6 +207,9 @@ fn eval_step(
           }
         @value.Value::Object(fields) =>
           for (key, item) in fields {
+            if !context.charge(span) {
+              return []
+            }
             let key_value = @value.Value::string(key)
             match environment.bind(key_name, key_value) {
               Some(key_environment) =>
@@ -371,21 +395,6 @@ fn eval_term(
       }
       Some(@value.Value::set(values))
     }
-  }
-}
-
-///|
-fn iterable_values(value : @value.Value) -> Array[@value.Value] {
-  match value {
-    @value.Value::Array(items) | @value.Value::Set(items) => items.copy()
-    @value.Value::Object(fields) => {
-      let keys : Array[@value.Value] = []
-      for (key, _) in fields {
-        keys.push(@value.Value::string(key))
-      }
-      keys
-    }
-    _ => []
   }
 }
 

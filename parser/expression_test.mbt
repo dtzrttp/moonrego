@@ -62,6 +62,12 @@ test "parses array comprehensions with a semicolon-separated body" {
 }
 
 ///|
+test "rejects comprehension syntax after earlier array elements" {
+  let parsed = @parser.parse_query("[1, 2 | true]")
+  assert_true(parsed.diagnostics().length() > 0)
+}
+
+///|
 test "parses object literals with string keys" {
   let parsed = @parser.parse_query("{\"role\": input.role, \"active\": true}")
   inspect(

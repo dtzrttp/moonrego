@@ -76,6 +76,12 @@ fn Parser::parse_array_literal(
     guard self.parse_precedence(0) is Some(item) else { return None }
     items.push(item)
     if self.current().kind() is @syntax.TokenKind::Pipe {
+      if items.length() > 1 {
+        self.error(
+          "array comprehension cannot follow additional array elements",
+        )
+        return None
+      }
       self.advance() |> ignore
       let body = self.parse_comprehension_body()
       if body.length() == 0 {
