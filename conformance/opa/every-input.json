@@ -1,0 +1,8 @@
+{
+  "roles": ["viewer", "admin"],
+  "users": {
+    "team-a": {"roles": ["staff"]},
+    "team-b": {"roles": ["staff", "reviewer"]}
+  },
+  "tags": ["web", "api"]
+}

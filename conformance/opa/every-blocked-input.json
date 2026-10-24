@@ -1,0 +1,7 @@
+{
+  "roles": ["admin", "blocked"],
+  "users": {
+    "team-a": {"roles": ["staff"]},
+    "team-b": {"roles": ["contractor"]}
+  }
+}
