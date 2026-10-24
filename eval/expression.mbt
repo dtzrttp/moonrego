@@ -233,56 +233,8 @@ fn eval_step(
       }
       results
     }
-    @syntax.Expr::Every(key_name, value_name, domain, body, span) => {
-      guard key_name is None else { return [] }
-      guard eval_value(domain, environment, context) is Some(domain_value) else {
-        return []
-      }
-      let mut passes = true
-      match domain_value {
-        @value.Value::Array(items) | @value.Value::Set(items) =>
-          for item in items {
-            if passes {
-              if !context.charge(span) {
-                return []
-              }
-              let local_environment = environment.bind_local(value_name, item)
-              let rows = eval_body(body, local_environment, context)
-              if context.diagnostics.length() > 0 {
-                return []
-              }
-              if rows.length() == 0 {
-                passes = false
-              }
-            }
-          }
-        @value.Value::Object(fields) =>
-          for (key, _) in fields {
-            if passes {
-              if !context.charge(span) {
-                return []
-              }
-              let local_environment = environment.bind_local(
-                value_name,
-                @value.Value::string(key),
-              )
-              let rows = eval_body(body, local_environment, context)
-              if context.diagnostics.length() > 0 {
-                return []
-              }
-              if rows.length() == 0 {
-                passes = false
-              }
-            }
-          }
-        _ => return []
-      }
-      if passes {
-        [(environment, @value.Value::boolean(true))]
-      } else {
-        []
-      }
-    }
+    @syntax.Expr::Every(key_name, value_name, domain, body, span) =>
+      eval_every(key_name, value_name, domain, body, span, environment, context)
     @syntax.Expr::Unary(@syntax.UnaryOp::Not, inner, _) => {
       let results = eval_step(inner, environment, context, false)
       if context.diagnostics.length() > 0 || results.length() > 0 {
@@ -303,6 +255,139 @@ fn eval_step(
         None => []
       }
   }
+}
+
+///|
+fn eval_every(
+  key_name : String?,
+  value_name : String,
+  domain : @syntax.Expr,
+  body : Array[@syntax.Expr],
+  span : @diagnostic.SourceSpan,
+  environment : Environment,
+  context : EvalContext,
+) -> Array[(Environment, @value.Value)] {
+  guard eval_value(domain, environment, context) is Some(domain_value) else {
+    return []
+  }
+  let mut passes = true
+  match domain_value {
+    @value.Value::Array(items) =>
+      for index in 0..<items.length() {
+        if passes {
+          match int_value(index) {
+            Some(key) =>
+              passes = eval_every_item(
+                key_name,
+                value_name,
+                Some(key),
+                items[index],
+                body,
+                span,
+                environment,
+                context,
+              )
+            None => passes = false
+          }
+          if context.diagnostics.length() > 0 {
+            return []
+          }
+        }
+      }
+    @value.Value::Object(fields) =>
+      for (key, item) in fields {
+        if passes {
+          let value = match key_name {
+            Some(_) => item
+            None => @value.Value::string(key)
+          }
+          passes = eval_every_item(
+            key_name,
+            value_name,
+            Some(@value.Value::string(key)),
+            value,
+            body,
+            span,
+            environment,
+            context,
+          )
+          if context.diagnostics.length() > 0 {
+            return []
+          }
+        }
+      }
+    @value.Value::Set(items) =>
+      match key_name {
+        Some(_) => {
+          context.diagnostics.push(
+            @diagnostic.Diagnostic::error(
+              @diagnostic.Stage::Eval,
+              "rego_unsupported_feature",
+              "two-variable every over sets is outside the supported subset",
+              span,
+            ),
+          )
+          return []
+        }
+        None =>
+          for item in items {
+            if passes {
+              passes = eval_every_item(
+                None,
+                value_name,
+                None,
+                item,
+                body,
+                span,
+                environment,
+                context,
+              )
+              if context.diagnostics.length() > 0 {
+                return []
+              }
+            }
+          }
+      }
+    _ => {
+      context.diagnostics.push(
+        @diagnostic.Diagnostic::error(
+          @diagnostic.Stage::Eval,
+          "rego_type_error",
+          "every domain must be an array, object, or set",
+          domain.span(),
+        ),
+      )
+      return []
+    }
+  }
+  if passes {
+    [(environment, @value.Value::boolean(true))]
+  } else {
+    []
+  }
+}
+
+///|
+fn eval_every_item(
+  key_name : String?,
+  value_name : String,
+  key_value : @value.Value?,
+  item : @value.Value,
+  body : Array[@syntax.Expr],
+  span : @diagnostic.SourceSpan,
+  environment : Environment,
+  context : EvalContext,
+) -> Bool {
+  if !context.charge(span) {
+    return false
+  }
+  let local_environment = match (key_name, key_value) {
+    (Some(name), Some(key)) => environment.bind_local(name, key)
+    _ => environment
+  }
+  let local_environment = local_environment.bind_local(value_name, item)
+  let rows = eval_body(body, local_environment, context)
+  rows.length() > 0
 }
 
 ///|

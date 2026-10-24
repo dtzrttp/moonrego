@@ -185,6 +185,162 @@ test "every body assignments do not escape their local scope" {
 }
 
 ///|
+test "every pair iterates array indices and values" {
+  let result = @eval.eval_query(
+    "every index, role in input.roles { index >= 0; role != \"blocked\" }",
+    @value.Value::Object({
+      "roles": @value.Value::array([
+        @value.Value::string("viewer"),
+        @value.Value::string("admin"),
+      ]),
+    }),
+    @eval.EvalOptions::new(1000),
+  )
+  assert_eq(result.diagnostics().length(), 0)
+  assert_eq(result.values().length(), 1)
+  assert_true(result.values()[0].equal(@value.Value::boolean(true)))
+}
+
+///|
+test "every pair iterates object keys and values" {
+  let result = @eval.eval_query(
+    "every name, user in input.users { startswith(name, \"team-\"); \"staff\" in user.roles }",
+    @value.Value::Object({
+      "users": @value.Value::Object({
+        "team-a": @value.Value::Object({
+          "roles": @value.Value::array([@value.Value::string("staff")]),
+        }),
+        "team-b": @value.Value::Object({
+          "roles": @value.Value::array([
+            @value.Value::string("staff"),
+            @value.Value::string("reviewer"),
+          ]),
+        }),
+      }),
+    }),
+    @eval.EvalOptions::new(1000),
+  )
+  assert_eq(result.diagnostics().length(), 0)
+  assert_eq(result.values().length(), 1)
+  assert_true(result.values()[0].equal(@value.Value::boolean(true)))
+}
+
+///|
+test "every one-variable object iteration binds keys and set iteration binds members" {
+  let object_result = @eval.eval_query(
+    "every name in input.users { startswith(name, \"team-\") }",
+    @value.Value::Object({
+      "users": @value.Value::Object({
+        "team-a": @value.Value::boolean(true),
+        "team-b": @value.Value::boolean(false),
+      }),
+    }),
+    @eval.EvalOptions::new(1000),
+  )
+  assert_eq(object_result.diagnostics().length(), 0)
+  assert_eq(object_result.values().length(), 1)
+  assert_true(object_result.values()[0].equal(@value.Value::boolean(true)))
+
+  let set_result = @eval.eval_query(
+    "every tag in input.tags { tag != \"blocked\" }",
+    @value.Value::Object({
+      "tags": @value.Value::set([
+        @value.Value::string("public"),
+        @value.Value::string("internal"),
+      ]),
+    }),
+    @eval.EvalOptions::new(1000),
+  )
+  assert_eq(set_result.diagnostics().length(), 0)
+  assert_eq(set_result.values().length(), 1)
+  assert_true(set_result.values()[0].equal(@value.Value::boolean(true)))
+}
+
+///|
+test "every over a set fails when a member fails the body" {
+  let result = @eval.eval_query(
+    "every tag in input.tags { tag != \"blocked\" }",
+    @value.Value::Object({
+      "tags": @value.Value::set([
+        @value.Value::string("public"),
+        @value.Value::string("blocked"),
+      ]),
+    }),
+    @eval.EvalOptions::new(1000),
+  )
+  assert_eq(result.diagnostics().length(), 0)
+  assert_eq(result.values().length(), 0)
+}
+
+///|
+test "every rejects two-variable set iteration" {
+  let result = @eval.eval_query(
+    "every key, value in input.tags { true }",
+    @value.Value::Object({
+      "tags": @value.Value::set([@value.Value::string("public")]),
+    }),
+    @eval.EvalOptions::new(1000),
+  )
+  assert_eq(result.values().length(), 0)
+  assert_eq(result.diagnostics().length(), 1)
+  assert_eq(result.diagnostics()[0].code(), "rego_unsupported_feature")
+}
+
+///|
+test "every reports an error for a non-collection domain" {
+  let result = @eval.eval_query(
+    "every value in 42 { true }",
+    @value.Value::null(),
+    @eval.EvalOptions::new(1000),
+  )
+  assert_eq(result.values().length(), 0)
+  assert_eq(result.diagnostics().length(), 1)
+  assert_eq(result.diagnostics()[0].code(), "rego_type_error")
+  assert_eq(
+    result.diagnostics()[0].message(),
+    "every domain must be an array, object, or set",
+  )
+}
+
+///|
+test "nested every checks each nested collection" {
+  let all_pass = @eval.eval_query(
+    "every team in input.teams { every role in team.roles { role != \"blocked\" } }",
+    @value.Value::Object({
+      "teams": @value.Value::array([
+        @value.Value::Object({
+          "roles": @value.Value::array([@value.Value::string("admin")]),
+        }),
+        @value.Value::Object({
+          "roles": @value.Value::array([@value.Value::string("viewer")]),
+        }),
+      ]),
+    }),
+    @eval.EvalOptions::new(1000),
+  )
+  assert_eq(all_pass.diagnostics().length(), 0)
+  assert_eq(all_pass.values().length(), 1)
+  assert_true(all_pass.values()[0].equal(@value.Value::boolean(true)))
+
+  let one_fails = @eval.eval_query(
+    "every team in input.teams { every role in team.roles { role != \"blocked\" } }",
+    @value.Value::Object({
+      "teams": @value.Value::array([
+        @value.Value::Object({
+          "roles": @value.Value::array([@value.Value::string("admin")]),
+        }),
+        @value.Value::Object({
+          "roles": @value.Value::array([@value.Value::string("blocked")]),
+        }),
+      ]),
+    }),
+    @eval.EvalOptions::new(1000),
+  )
+  assert_eq(one_fails.diagnostics().length(), 0)
+  assert_eq(one_fails.values().length(), 0)
+}
+
+///|
 test "array comprehension filters values and preserves duplicates" {
   let input : @value.Value = @value.Value::Object({
     "roles": @value.Value::array([

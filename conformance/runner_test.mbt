@@ -80,6 +80,39 @@ test "default and complete rules preserve Rego fallback behavior" {
 }
 
 ///|
+test "every policy checks all array members in rule definitions" {
+  let source =
+    #|package p
+    #|allow if {
+    #|  every role in input.roles {
+    #|    role != "blocked"
+    #|  }
+    #|}
+  let allowed = eval_policy_case(
+    source,
+    "data.p.allow",
+    @value.Value::Object({
+      "roles": @value.Value::array([
+        @value.Value::string("admin"),
+        @value.Value::string("viewer"),
+      ]),
+    }),
+  )
+  expect_values(allowed, [@value.Value::boolean(true)])
+  let denied = eval_policy_case(
+    source,
+    "data.p.allow",
+    @value.Value::Object({
+      "roles": @value.Value::array([
+        @value.Value::string("admin"),
+        @value.Value::string("blocked"),
+      ]),
+    }),
+  )
+  expect_values(denied, [])
+}
+
+///|
 test "array key-value iteration binds the index and value" {
   let input : @value.Value = @value.Value::Object({
     "roles": @value.Value::array([
