@@ -7,21 +7,26 @@ queried for this feature branch.
 
 ## Toolchain
 
-Command: `moon version --all`
+Command: moon version --all
 
-```text
-moon 0.1.20261023 (3778465 2026-10-23)
-moonc v0.10.17+d971670cd (2026-10-23)
-moonrun 0.1.20261023 (3778465 2026-10-23)
-```
+    moon 0.1.20261023 (3778465 2026-10-23)
+    moonc v0.10.17+d971670cd (2026-10-23)
+    moonrun 0.1.20261023 (3778465 2026-10-23)
 
-The installed toolchain reports the stable channel versions above. The [official MoonBit update index](https://www.moonbitlang.com/updates) currently lists language releases through 0.10.14, but
-does not publish a directly comparable dated CLI build for the installed
-0.10.17 toolchain. A previous `moon upgrade` could not replace the current
-Windows `moon.exe` (access denied), and direct official downloads failed due
-to proxy authentication. The installed versions are recorded, but their
-status as the latest stable versions is **not confirmed**. No development
-channel was selected.
+On 2026-10-24, moon upgrade --force completed through the default stable
+channel and reported “Moonbit installed successfully.” A normal-privilege
+attempt failed because Windows denied replacing the current moon.exe. The
+interactive retry with the required install permission completed; its
+PowerShell Set-ExecutionPolicy call emitted a module-load warning, but the
+installer continued. Post-install moon version --all returned the versions
+above, so the installed toolchain matches the latest stable release selected
+by the official updater at that time. The [official MoonBit update index](https://www.moonbitlang.com/updates) lists
+language releases through 0.10.14, which is not directly comparable to this
+dated CLI build. No development channel was selected.
+
+A separate moon upgrade --dry-run attempt returned “dry-run is not supported
+for upgrade”; the current CLI does not expose a no-write check for this
+command.
 
 ## Release gate
 
@@ -32,7 +37,7 @@ Commands were run from the repository root in this order:
 | `moon fmt --check` | Passed. |
 | `moon check --deny-warn --target all` | Passed. |
 | `moon test --deny-warn --target all` | Passed after the edge-case fixes: wasm 130/130, wasm-gc 130/130, JavaScript 130/130, native 133/133. |
-| `moon build --deny-warn --target all` | Passed, exit code 0. This run emitted dependency warning C4005 (`EINVAL` macro redefinition) from cached `moonbitlang/async`. |
+| `moon build --deny-warn --target all` | Passed, exit code 0. The first run emitted dependency warning C4005 (EINVAL macro redefinition) from cached moonbitlang/async; the post-upgrade rerun emitted no warning. |
 | `moon info` | Passed with no further generated interface diff. The intended public `Expr::Every(String?, String, Expr, Array[Expr], SourceSpan)` line had already been generated and committed as `a0a36c5`. |
 | `git diff --check` | Passed. Git printed line-ending conversion notices for edited text files. |
 | `moon test conformance --deny-warn --target native` | Passed: 11/11. |
@@ -52,7 +57,7 @@ this interpretation, but the OPA-specific result remains pending.
 
 ## Runnable example
 
-Both commands were run locally with `--format json`:
+After the stable updater completed, both commands were rerun locally with --format json:
 
 ```powershell
 moon run cmd/moonrego --target native -- eval 'data.access.allow' -i examples/every/input.json --format json examples/every/policy.rego

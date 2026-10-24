@@ -27,24 +27,20 @@
 
 ## Execution status (2026-10-24)
 
-Implementation, follow-up review fixes, and local release-gate verification are
-complete on branch codex/rego-every. The second review of d945f80 found only
-the stale evaluator test count in the oracle README; it is corrected to 50/50
-below. The all-target suite passes: 130 tests each on wasm, wasm-gc, and JS;
-133 native tests. Parser and evaluator packages pass 32/32 and 50/50, and the
-conformance suite passes 11/11. moon fmt --check, moon check --deny-warn
---target all, moon build --deny-warn --target all, moon info, and both
-every CLI examples pass.
+Implementation, follow-up review fixes, and the post-upgrade local release gate
+are complete on branch codex/rego-every. The default stable moon upgrade
+completed successfully; moon version --all reports moon 0.1.20261023,
+moonc v0.10.17+d971670cd, and moonrun 0.1.20261023 after the refresh. All
+targets pass: wasm, wasm-gc, and JS 130/130 each; native 133/133. Formatting,
+all-target check/build, moon info, and both every CLI examples pass. The latest
+post-upgrade build emitted no warning; an earlier Windows build emitted cached
+dependency warning C4005, recorded in docs/verification.md.
 
 OPA v1.21.4 is not installed. Downloading its official Windows binary failed
 with proxy authentication, so Task 1's oracle execution and comparison remain
-pending; the fixture expectations are not observations. The local MoonBit
-toolchain reports moon 0.1.20261023, moonc v0.10.17+d971670cd, and moonrun
-0.1.20261023. A stable upgrade could not replace the current Windows
-executable, and direct official downloads also failed proxy authentication;
-latest-stable status is not confirmed. No GitHub repository operation has
-been performed for this branch. See docs/verification.md for command details.
-
+pending; the fixture expectations are not observations. No GitHub repository
+operation has been performed for this branch. See docs/verification.md for
+command details.
 ---
 
 ## File Map
@@ -500,15 +496,14 @@ git -c user.name=dtzrttp -c user.email=313799694+dtzrttp@users.noreply.github.co
 **Interfaces:**
 - Produces: tested parser/compiler/evaluator behavior on every supported target and reviewed public interface changes.
 
-- [ ] **Step 1: Confirm the latest local MoonBit toolchain**
+- [x] **Step 1: Confirm the latest local MoonBit toolchain**
 
-`moon version --all` and the official stable documentation were checked. The
-installed versions are in `docs/verification.md`; latest-stable status remains
-unconfirmed because `moon upgrade` could not replace the current Windows
-executable and official download requests failed proxy authentication. No
-development channel was selected. This is the only unresolved local toolchain
-check in Task 7. The CI uses the default stable installer, but its remote
-version and result remain unverified while GitHub work is paused.
+Ran moon upgrade --force on the default stable channel. The official updater
+completed the install and the post-install moon version --all output is
+recorded in docs/verification.md. It returned the same moon 0.1.20261023,
+moonc v0.10.17+d971670cd, and moonrun 0.1.20261023 versions, confirming the
+latest stable toolchain selected by the updater. No development channel was
+used.
 
 - [x] **Step 2: Run formatting, check, tests, build, and interface generation**
 
@@ -526,7 +521,7 @@ Expected: formatting and all-target checks/build pass; all native, wasm, wasm-gc
 
 - [x] **Step 3: Review local source and repository state**
 
-Run `git diff --check`, `git status --short`, `git rev-list --count HEAD`, `git log --oneline -12`, `rg -n "every" docs/compatibility.md README.md README.mbt.md conformance/opa`, and `moon run cmd/moonrego --target native -- --help`. Confirm the project history remains above ten substantive commits and no downloaded OPA executable, generated unrelated file, or ignored submission document entered the Git diff. Resolve every diagnostic and rerun the failed command before finalizing. **Verified locally:** commit `d945f80`, 20 meaningful commits before the final verification-record commit, 41 `.mbt` files / 4,694 production lines / 2,007 test lines, and no generated interface diff after `moon info`.
+Run the listed local checks and review the source and repository state. **Verified locally:** at d945f80 the feature branch had 20 meaningful commits, 41 .mbt files / 4,694 production lines / 2,007 test lines, and no generated interface diff after moon info. The final documentation commits record the later stable refresh.
 
 - [x] **Step 4: Commit final verified interface and documentation corrections**
 
@@ -538,6 +533,12 @@ git -c user.name=dtzrttp -c user.email=313799694+dtzrttp@users.noreply.github.co
 ```
 
 Run `git status --short` and `git show --stat --oneline HEAD`; expected: clean worktree and only files for this feature.
+
+
+- [x] **Step 5: Record stable toolchain refresh and post-upgrade verification**
+
+Committed the updater result, refreshed release-gate outcomes, and updated the
+local application and self-review records after the post-upgrade checks.
 
 ## Self-review
 
