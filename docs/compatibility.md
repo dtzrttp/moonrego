@@ -11,7 +11,7 @@ translated into different semantics.
 | --- | --- |
 | Modules | `package`, `import data...` and aliases |
 | Rules | Constant, `default`, complete boolean/value rules with `if`, and `contains` set rules |
-| Expressions | JSON literals, arrays, string-key objects, sets, array comprehensions, references, assignment, comparisons, `in`, `not`, and exact `+`, `-`, `*` |
+| Expressions | JSON literals, arrays, string-key objects, sets, array and set comprehensions, references, assignment, comparisons, `in`, `not`, and exact `+`, `-`, `*` |
 | Iteration | `some value in collection`; `some key, value in collection` for arrays and objects |
 | Compiler | Unsafe-variable checks, builtin name/arity checks, rule-shape/default conflicts, and recursion checks |
 | Evaluation | `input`/`data`, backtracking, complete/default/set rules, conflict diagnostics, and a maximum step count |
@@ -23,15 +23,17 @@ accepts two arrays. `object.get` supports a string key or a path array through
 objects and arrays, and returns its default if the path is missing. `object.keys`
 returns a set of string keys.
 
-Array comprehensions use the Rego form `[value | body]`. Their body accepts
-semicolon-separated expressions; variables bound there are local to the
-comprehension. Results preserve iteration order and duplicate values. Set and
-object comprehensions are not implemented.
+Array comprehensions use `[value | body]`; set comprehensions use
+`{value | body}`. Their bodies accept semicolon-separated expressions, and
+variables bound there are local to the comprehension. Array results preserve
+iteration order and duplicate values; set results contain distinct values.
+Body iteration and value comparisons used to remove duplicate set results use
+the shared evaluation step budget. Object comprehensions are not implemented.
 
 ## Not implemented
 
 - Rego v0 compatibility syntax;
-- division, remainder, set/object comprehensions, user functions, `every`, `else`, or `with`;
+- division, remainder, object comprehensions, user functions, `every`, `else`, or `with`;
 - two-variable `some-in` over sets and composite binding patterns;
 - most OPA builtins, including generic `sort`, `product`, and non-numeric `min`/`max`;
 - result-count, output-byte, and recursion-depth budgets;

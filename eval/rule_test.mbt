@@ -48,6 +48,27 @@ test "incremental rules collect unique values into a set" {
 }
 
 ///|
+test "incremental set rule deduplication uses the shared step budget" {
+  let policy = @parser.parse_module(
+      "package p\nroles contains 1 if true\nroles contains 2 if true\nroles contains 3 if true\nroles contains 4 if true",
+      "roles-budget.rego",
+    )
+    .policy()
+    .unwrap()
+  let program = @compile.compile_modules([policy]).program().unwrap()
+  let result = @eval.eval_program_query(
+    program,
+    "data.p.roles",
+    @value.Value::null(),
+    @value.Value::null(),
+    @eval.EvalOptions::new(14),
+  )
+  assert_eq(result.values().length(), 0)
+  assert_eq(result.diagnostics().length(), 1)
+  assert_eq(result.diagnostics()[0].code(), "rego_eval_step_limit")
+}
+
+///|
 test "conflicting complete rule values produce an evaluation error" {
   let policy = @parser.parse_module(
       "package p\nrole := \"admin\"\nrole := \"editor\"", "conflict.rego",

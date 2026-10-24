@@ -55,6 +55,21 @@ test "array comprehension variables stay local to the comprehension" {
 }
 
 ///|
+test "set comprehension bindings are local and checked for safety" {
+  let safe = @compile.compile_source(
+    "package p\nroles := {role | some role in input.roles; role != \"guest\"}", "set-comprehension-safe.rego",
+  )
+  assert_eq(safe.map(fn(diagnostic) { diagnostic.message() }).join("|"), "")
+  let escaping = @compile.compile_source(
+    "package p\nroles := {role | some role in input.roles}\nallow if role == \"admin\"",
+    "set-comprehension-scope.rego",
+  )
+  assert_true(
+    escaping.any(fn(diagnostic) { diagnostic.code() == "rego_unsafe_var_error" }),
+  )
+}
+
+///|
 test "rejects multiple default definitions for one rule" {
   let diagnostics = @compile.compile_source(
     "package p\ndefault allow := false\ndefault allow := true", "defaults.rego",

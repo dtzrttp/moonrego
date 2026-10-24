@@ -68,6 +68,34 @@ test "rejects comprehension syntax after earlier array elements" {
 }
 
 ///|
+test "parses set comprehensions with semicolon-separated bodies" {
+  let parsed = @parser.parse_query(
+    "{role | some role in input.roles; role != \"guest\"}",
+  )
+  inspect(
+    parsed.syntax(),
+    content="SetComprehension(role,[SomeIn(role,Ref(input,[Field(roles)])),Binary(NotEqual,role,String(guest))])",
+  )
+  assert_eq(parsed.diagnostics().length(), 0)
+}
+
+///|
+test "rejects set comprehensions with an empty body" {
+  let parsed = @parser.parse_query("{role | }")
+  assert_true(parsed.diagnostics().length() > 0)
+  assert_true(
+    parsed.diagnostics().all(fn(item) { item.code() == "rego_parse_error" }),
+  )
+  assert_true(
+    parsed
+    .diagnostics()
+    .any(fn(item) {
+      item.message() == "set comprehension body must not be empty"
+    }),
+  )
+}
+
+///|
 test "parses object literals with string keys" {
   let parsed = @parser.parse_query("{\"role\": input.role, \"active\": true}")
   inspect(

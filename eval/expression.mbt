@@ -293,7 +293,8 @@ fn eval_value(
     return None
   }
   match expression {
-    @syntax.Expr::Term(term, _) => eval_term(term, environment, context)
+    @syntax.Expr::Term(term, span) =>
+      eval_term(term, span, environment, context)
     @syntax.Expr::Ref(root, parts, _) =>
       eval_reference(root, parts, environment, context)
     @syntax.Expr::Unary(@syntax.UnaryOp::Negate, inner, _) => {
@@ -345,6 +346,23 @@ fn eval_value(
       }
       Some(@value.Value::array(values))
     }
+    @syntax.Expr::SetComprehension(element, body, _) => {
+      let rows = eval_body(body, environment, context)
+      if context.diagnostics.length() > 0 {
+        return None
+      }
+      let unique : Array[@value.Value] = []
+      for (row_environment, _) in rows {
+        guard eval_value(element, row_environment, context) is Some(value) else {
+          return None
+        }
+        guard insert_set_value(unique, value, element.span(), context)
+          is Some(_) else {
+          return None
+        }
+      }
+      Some(@value.Value::Set(unique))
+    }
     @syntax.Expr::SomeIn(_, _, _) => None
     @syntax.Expr::SomeInPair(_, _, _, _) => None
   }
@@ -353,6 +371,7 @@ fn eval_value(
 ///|
 fn eval_term(
   term : @syntax.Term,
+  span : @diagnostic.SourceSpan,
   environment : Environment,
   context : EvalContext,
 ) -> @value.Value? {
@@ -386,16 +405,37 @@ fn eval_term(
       Some(@value.Value::Object(fields))
     }
     @syntax.Term::Set(items) => {
-      let values : Array[@value.Value] = []
+      let unique : Array[@value.Value] = []
       for item in items {
         guard eval_value(item, environment, context) is Some(value) else {
           return None
         }
-        values.push(value)
+        guard insert_set_value(unique, value, span, context) is Some(_) else {
+          return None
+        }
       }
-      Some(@value.Value::set(values))
+      Some(@value.Value::Set(unique))
     }
   }
+}
+
+///|
+fn insert_set_value(
+  unique : Array[@value.Value],
+  value : @value.Value,
+  span : @diagnostic.SourceSpan,
+  context : EvalContext,
+) -> Bool? {
+  for existing in unique {
+    if !context.charge(span) {
+      return None
+    }
+    if existing.equal(value) {
+      return Some(false)
+    }
+  }
+  unique.push(value)
+  Some(true)
 }
 
 ///|
@@ -533,7 +573,7 @@ fn eval_builtin(
       for (key, _) in fields {
         keys.push(@value.Value::string(key))
       }
-      Some(@value.Value::set(keys))
+      Some(@value.Value::Set(keys))
     }
     ("upper", [@value.Value::String(text)]) =>
       Some(@value.Value::string(text.to_upper()))

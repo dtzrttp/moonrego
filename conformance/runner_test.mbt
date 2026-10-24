@@ -116,6 +116,25 @@ test "array comprehensions filter values in rule definitions" {
 }
 
 ///|
+test "set comprehensions return distinct values in rule definitions" {
+  let source =
+    #|package p
+    #|roles := {role | some role in input.roles; role != "guest"}
+  let result = eval_policy_case(
+    source,
+    "data.p.roles",
+    @value.Value::Object({
+      "roles": @value.Value::array([
+        @value.Value::string("guest"),
+        @value.Value::string("admin"),
+        @value.Value::string("admin"),
+      ]),
+    }),
+  )
+  expect_values(result, [@value.Value::set([@value.Value::string("admin")])])
+}
+
+///|
 test "contains rules collect unique values" {
   let source =
     #|package p

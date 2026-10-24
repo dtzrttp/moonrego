@@ -56,6 +56,7 @@ pub(all) enum Expr {
   SomeIn(String, Expr, @diagnostic.SourceSpan)
   SomeInPair(String, String, Expr, @diagnostic.SourceSpan)
   ArrayComprehension(Expr, Array[Expr], @diagnostic.SourceSpan)
+  SetComprehension(Expr, Array[Expr], @diagnostic.SourceSpan)
 }
 
 ///|
@@ -68,7 +69,8 @@ pub fn Expr::span(self : Expr) -> @diagnostic.SourceSpan {
     | Call(_, _, span)
     | SomeIn(_, _, span)
     | SomeInPair(_, _, _, span)
-    | ArrayComprehension(_, _, span) => span
+    | ArrayComprehension(_, _, span)
+    | SetComprehension(_, _, span) => span
   }
 }
 
@@ -146,5 +148,7 @@ pub fn Expr::syntax(self : Expr) -> String {
       "SomeInPair(\{key},\{value},\{collection.syntax()})"
     ArrayComprehension(value, body, _) =>
       "ArrayComprehension(\{value.syntax()},[\{body.map(fn(item) { item.syntax() }).join(",")}])"
+    SetComprehension(value, body, _) =>
+      "SetComprehension(\{value.syntax()},[\{body.map(fn(item) { item.syntax() }).join(",")}])"
   }
 }

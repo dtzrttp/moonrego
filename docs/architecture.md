@@ -34,10 +34,12 @@ reference distinct from an explicit JSON `null`. Query bodies carry an array of
 binding environments from one expression to the next, so iteration and
 backtracking can yield several results.
 
-Array comprehensions evaluate their body in a copied binding environment, then
-evaluate the result expression once for each successful row. This keeps local
-variables scoped to the comprehension and charges body and projection work to
-the same evaluation step budget.
+Array and set comprehensions evaluate their body in a copied binding
+environment, then evaluate the result expression once for each successful row.
+Array results preserve successful-row order and duplicates; set results remove
+duplicates. Variables remain scoped to the comprehension. Body iteration and
+value comparisons used for set deduplication charge the shared evaluation step
+budget.
 
 Complete rules collect successful values and report a conflict when definitions
 produce unequal values. A default is used only when the complete rule has no

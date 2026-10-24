@@ -10,7 +10,7 @@ the [compatibility guide](docs/compatibility.md).
 
 - Source-located lexer, parser, compiler, and evaluation diagnostics.
 - Exact finite decimal values and JSON conversion.
-- Array comprehensions with scoped iteration and filtering.
+- Array and set comprehensions with scoped iteration, filtering, and set deduplication.
 - Complete, default, and incremental set rules with bounded evaluation.
 - Policy checks, `test_` rules, and JSON or human-readable CLI output.
 - A shared core that checks on native, WebAssembly, WebAssembly GC, and
@@ -26,8 +26,10 @@ moon run cmd/moonrego --target native -- eval 'data.authz.allow' \
 ```
 
 The first command validates the policy, the second runs its `test_` rules, and
-the last evaluates the allowed authorization input. More examples and the
-complete local verification commands are in [README.mbt.md](README.mbt.md).
+the last evaluates the allowed authorization input. The policy also exposes
+`data.authz.matched_roles`, a set comprehension that filters input roles against
+the configured role set. More examples and the complete local verification
+commands are in [README.mbt.md](README.mbt.md).
 
 ## Development
 

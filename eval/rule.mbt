@@ -37,7 +37,17 @@ fn eval_rule(
         let rows = eval_body(rule.body(), environment, context)
         for (environment, _) in rows {
           match eval_value(head_value, environment, context) {
-            Some(value) => set_values.push(value)
+            Some(value) => {
+              let inserted = insert_set_value(
+                set_values,
+                value,
+                head_value.span(),
+                context,
+              )
+              if inserted is None {
+                return None
+              }
+            }
             None => ()
           }
         }
@@ -48,7 +58,7 @@ fn eval_rule(
     }
   }
   if is_incremental_set {
-    Some(@value.Value::set(set_values))
+    Some(@value.Value::Set(set_values))
   } else if complete_values.length() > 0 {
     let first = complete_values[0]
     if complete_values.all(fn(value) { value.equal(first) }) {

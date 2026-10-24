@@ -118,7 +118,8 @@ fn Parser::parse_array_literal(
 ///|
 fn Parser::parse_comprehension_body(self : Parser) -> Array[@syntax.Expr] {
   let body : Array[@syntax.Expr] = []
-  if self.current().kind() is @syntax.TokenKind::RightBracket {
+  if self.current().kind() is @syntax.TokenKind::RightBracket ||
+    self.current().kind() is @syntax.TokenKind::RightBrace {
     return body
   }
   for ;; {
@@ -126,7 +127,8 @@ fn Parser::parse_comprehension_body(self : Parser) -> Array[@syntax.Expr] {
     body.push(expression)
     if self.current().kind() is @syntax.TokenKind::Semicolon {
       self.advance() |> ignore
-      if self.current().kind() is @syntax.TokenKind::RightBracket {
+      if self.current().kind() is @syntax.TokenKind::RightBracket ||
+        self.current().kind() is @syntax.TokenKind::RightBrace {
         break
       }
       continue
@@ -149,6 +151,20 @@ fn Parser::parse_object_or_set(
       Some(expression) => expression
       None => return None
     }
+  }
+  if self.current().kind() is @syntax.TokenKind::Pipe {
+    self.advance() |> ignore
+    let body = self.parse_comprehension_body()
+    if body.length() == 0 {
+      self.error("set comprehension body must not be empty")
+      return None
+    }
+    if self.current().kind() is @syntax.TokenKind::RightBrace {
+      let end = self.advance().span()
+      return Some(@syntax.Expr::SetComprehension(first, body, start.join(end)))
+    }
+    self.error("expected '}' after set comprehension")
+    return None
   }
   if self.current().kind() is @syntax.TokenKind::Colon {
     let first_key = match first {
