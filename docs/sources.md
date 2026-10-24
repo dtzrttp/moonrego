@@ -10,10 +10,11 @@ documents were used to understand language behavior and choose examples:
 - [Object builtins](https://www.openpolicyagent.org/docs/policy-reference/builtins/object)
 - [The `some` keyword](https://www.openpolicyagent.org/docs/policy-reference/keywords/some)
 - [Errors](https://www.openpolicyagent.org/docs/errors)
+- [`eval_conflict_error`: object keys must be unique](https://www.openpolicyagent.org/docs/errors/eval-conflict-error/object-keys-must-be-unique)
 - [Policy testing](https://www.openpolicyagent.org/docs/policy-testing)
 
 No OPA source code, upstream test cases, or third-party policy samples are
-included. The seven conformance cases are written in this repository and are
+included. The ten conformance cases are written in this repository and are
 based on documented semantics. The authorization/configuration policies and
 JSON inputs under `examples/` are original project content. No local OPA oracle
 run or OPA version is claimed.

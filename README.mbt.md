@@ -25,7 +25,7 @@ built-ins include `count`, numeric `sum`/`min`/`max` over arrays and sets,
 Two-variable `some-in` over sets and composite binding patterns are reported as
 unsupported. `min` and `max` currently accept numeric collections only. Division,
 additional built-ins and deterministic result normalization remain open work. The
-`conformance/` package currently contains eight first-party semantic regression
+`conformance/` package currently contains ten first-party semantic regression
 cases. It has not been checked against an installed OPA executable or OPA's
 upstream test corpus. The implementation plan under `docs/superpowers/plans/`
 tracks the exact status.
