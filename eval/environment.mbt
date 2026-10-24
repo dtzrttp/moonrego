@@ -31,3 +31,14 @@ fn Environment::bind(
     }
   }
 }
+
+///|
+fn Environment::bind_local(
+  self : Environment,
+  name : String,
+  value : @value.Value,
+) -> Environment {
+  let bindings = self.bindings.copy()
+  bindings[name] = value
+  { bindings, }
+}

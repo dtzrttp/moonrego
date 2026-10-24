@@ -76,6 +76,115 @@ test "some-in pair reports unsupported set key-value iteration" {
 }
 
 ///|
+test "every over an array succeeds when every body has a result" {
+  let result = @eval.eval_query(
+    "every role in input.roles { role != \"blocked\" }",
+    @value.Value::Object({
+      "roles": @value.Value::array([
+        @value.Value::string("viewer"),
+        @value.Value::string("admin"),
+      ]),
+    }),
+    @eval.EvalOptions::new(1000),
+  )
+  assert_eq(result.diagnostics().length(), 0)
+  assert_eq(result.values().length(), 1)
+  assert_true(result.values()[0].equal(@value.Value::boolean(true)))
+}
+
+///|
+test "every over an array fails when any body has no result" {
+  let result = @eval.eval_query(
+    "every role in input.roles { role != \"blocked\" }",
+    @value.Value::Object({
+      "roles": @value.Value::array([
+        @value.Value::string("viewer"),
+        @value.Value::string("blocked"),
+      ]),
+    }),
+    @eval.EvalOptions::new(1000),
+  )
+  assert_eq(result.diagnostics().length(), 0)
+  assert_eq(result.values().length(), 0)
+}
+
+///|
+test "every over empty arrays objects and sets succeeds" {
+  let parsed = @parser.parse_query_body("every item in [] { item > 0 }")
+  assert_eq(parsed.diagnostics().length(), 0)
+  assert_eq(parsed.expressions().length(), 1)
+  match parsed.expressions()[0] {
+    @syntax.Expr::Every(_, _, _, _, _) => ()
+    _ => assert_true(false)
+  }
+  let empty_array = @eval.eval_query(
+    "every item in [] { item > 0 }",
+    @value.Value::null(),
+    @eval.EvalOptions::new(1000),
+  )
+  assert_eq(empty_array.diagnostics().length(), 0)
+  assert_eq(empty_array.values().length(), 1)
+  assert_true(empty_array.values()[0].equal(@value.Value::boolean(true)))
+
+  let empty_object = @eval.eval_query(
+    "every item in input.roles { item > 0 }",
+    @value.Value::Object({ "roles": @value.Value::Object({}) }),
+    @eval.EvalOptions::new(1000),
+  )
+  assert_eq(empty_object.diagnostics().length(), 0)
+  assert_eq(empty_object.values().length(), 1)
+  assert_true(empty_object.values()[0].equal(@value.Value::boolean(true)))
+
+  let empty_set = @eval.eval_query(
+    "every item in set() { item > 0 }",
+    @value.Value::null(),
+    @eval.EvalOptions::new(1000),
+  )
+  assert_eq(empty_set.diagnostics().length(), 0)
+  assert_eq(empty_set.values().length(), 1)
+  assert_true(empty_set.values()[0].equal(@value.Value::boolean(true)))
+}
+
+///|
+test "every over an undefined domain is undefined without diagnostics" {
+  let result = @eval.eval_query(
+    "every role in input.roles { role != \"blocked\" }",
+    @value.Value::Object({}),
+    @eval.EvalOptions::new(1000),
+  )
+  assert_eq(result.diagnostics().length(), 0)
+  assert_eq(result.values().length(), 0)
+}
+
+///|
+test "every binder shadows locally and preserves the outer binding" {
+  let result = @eval.eval_query(
+    "some role in input.roles; every role in input.allowed { role == \"admin\" }; role",
+    @value.Value::Object({
+      "roles": @value.Value::array([@value.Value::string("viewer")]),
+      "allowed": @value.Value::array([@value.Value::string("admin")]),
+    }),
+    @eval.EvalOptions::new(1000),
+  )
+  assert_eq(result.diagnostics().length(), 0)
+  assert_eq(result.values().length(), 1)
+  assert_true(result.values()[0].equal(@value.Value::string("viewer")))
+}
+
+///|
+test "every body assignments do not escape their local scope" {
+  let result = @eval.eval_query(
+    "every role in input.roles { seen := role }; seen",
+    @value.Value::Object({
+      "roles": @value.Value::array([@value.Value::string("admin")]),
+    }),
+    @eval.EvalOptions::new(1000),
+  )
+  assert_eq(result.diagnostics().length(), 0)
+  assert_eq(result.values().length(), 0)
+}
+
+///|
 test "array comprehension filters values and preserves duplicates" {
   let input : @value.Value = @value.Value::Object({
     "roles": @value.Value::array([
