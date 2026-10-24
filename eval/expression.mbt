@@ -307,6 +307,20 @@ fn eval_value(
       }
       result
     }
+    @syntax.Expr::ArrayComprehension(element, body, _) => {
+      let rows = eval_body(body, environment, context)
+      if context.diagnostics.length() > 0 {
+        return None
+      }
+      let values : Array[@value.Value] = []
+      for (row_environment, _) in rows {
+        guard eval_value(element, row_environment, context) is Some(value) else {
+          return None
+        }
+        values.push(value)
+      }
+      Some(@value.Value::array(values))
+    }
     @syntax.Expr::SomeIn(_, _, _) => None
     @syntax.Expr::SomeInPair(_, _, _, _) => None
   }

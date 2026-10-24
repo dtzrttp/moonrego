@@ -37,6 +37,24 @@ test "accepts both variables bound by key-value some-in" {
 }
 
 ///|
+test "array comprehension variables stay local to the comprehension" {
+  let safe = @compile.compile_source(
+    "package p\nallow if { roles := [role | some role in input.roles; role == \"admin\"]; count(roles) > 0 }",
+    "comprehension-safe.rego",
+  )
+  assert_false(
+    safe.any(fn(diagnostic) { diagnostic.code() == "rego_unsafe_var_error" }),
+  )
+  let escaping = @compile.compile_source(
+    "package p\nallow if { roles := [role | some role in input.roles]; role == \"admin\" }",
+    "comprehension-scope.rego",
+  )
+  assert_true(
+    escaping.any(fn(diagnostic) { diagnostic.code() == "rego_unsafe_var_error" }),
+  )
+}
+
+///|
 test "rejects multiple default definitions for one rule" {
   let diagnostics = @compile.compile_source(
     "package p\ndefault allow := false\ndefault allow := true", "defaults.rego",

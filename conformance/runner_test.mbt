@@ -98,6 +98,24 @@ test "array key-value iteration binds the index and value" {
 }
 
 ///|
+test "array comprehensions filter values in rule definitions" {
+  let source =
+    #|package p
+    #|filtered := [role | some role in input.roles; role != "guest"]
+  let result = eval_policy_case(
+    source,
+    "data.p.filtered",
+    @value.Value::Object({
+      "roles": @value.Value::array([
+        @value.Value::string("guest"),
+        @value.Value::string("admin"),
+      ]),
+    }),
+  )
+  expect_values(result, [@value.Value::array([@value.Value::string("admin")])])
+}
+
+///|
 test "contains rules collect unique values" {
   let source =
     #|package p

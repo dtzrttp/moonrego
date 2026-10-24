@@ -55,6 +55,7 @@ pub(all) enum Expr {
   Call(String, Array[Expr], @diagnostic.SourceSpan)
   SomeIn(String, Expr, @diagnostic.SourceSpan)
   SomeInPair(String, String, Expr, @diagnostic.SourceSpan)
+  ArrayComprehension(Expr, Array[Expr], @diagnostic.SourceSpan)
 }
 
 ///|
@@ -66,7 +67,8 @@ pub fn Expr::span(self : Expr) -> @diagnostic.SourceSpan {
     | Binary(_, _, _, span)
     | Call(_, _, span)
     | SomeIn(_, _, span)
-    | SomeInPair(_, _, _, span) => span
+    | SomeInPair(_, _, _, span)
+    | ArrayComprehension(_, _, span) => span
   }
 }
 
@@ -142,5 +144,7 @@ pub fn Expr::syntax(self : Expr) -> String {
     SomeIn(name, collection, _) => "SomeIn(\{name},\{collection.syntax()})"
     SomeInPair(key, value, collection, _) =>
       "SomeInPair(\{key},\{value},\{collection.syntax()})"
+    ArrayComprehension(value, body, _) =>
+      "ArrayComprehension(\{value.syntax()},[\{body.map(fn(item) { item.syntax() }).join(",")}])"
   }
 }

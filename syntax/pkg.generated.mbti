@@ -35,6 +35,7 @@ pub(all) enum Expr {
   Call(String, Array[Expr], @diagnostic.SourceSpan)
   SomeIn(String, Expr, @diagnostic.SourceSpan)
   SomeInPair(String, String, Expr, @diagnostic.SourceSpan)
+  ArrayComprehension(Expr, Array[Expr], @diagnostic.SourceSpan)
 }
 pub fn Expr::span(Self) -> @diagnostic.SourceSpan
 pub fn Expr::syntax(Self) -> String

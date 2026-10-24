@@ -75,6 +75,22 @@ fn Parser::parse_array_literal(
   for ;; {
     guard self.parse_precedence(0) is Some(item) else { return None }
     items.push(item)
+    if self.current().kind() is @syntax.TokenKind::Pipe {
+      self.advance() |> ignore
+      let body = self.parse_comprehension_body()
+      if body.length() == 0 {
+        self.error("array comprehension body must not be empty")
+        return None
+      }
+      if self.current().kind() is @syntax.TokenKind::RightBracket {
+        let end = self.advance().span()
+        return Some(
+          @syntax.Expr::ArrayComprehension(item, body, start.join(end)),
+        )
+      }
+      self.error("expected ']' after array comprehension")
+      return None
+    }
     if self.current().kind() is @syntax.TokenKind::Comma {
       self.advance() |> ignore
       if self.current().kind() is @syntax.TokenKind::RightBracket {
@@ -91,6 +107,27 @@ fn Parser::parse_array_literal(
     self.error("expected ',' or ']' in array literal")
     None
   }
+}
+
+///|
+fn Parser::parse_comprehension_body(self : Parser) -> Array[@syntax.Expr] {
+  let body : Array[@syntax.Expr] = []
+  if self.current().kind() is @syntax.TokenKind::RightBracket {
+    return body
+  }
+  for ;; {
+    guard self.parse_precedence(0) is Some(expression) else { return body }
+    body.push(expression)
+    if self.current().kind() is @syntax.TokenKind::Semicolon {
+      self.advance() |> ignore
+      if self.current().kind() is @syntax.TokenKind::RightBracket {
+        break
+      }
+      continue
+    }
+    break
+  }
+  body
 }
 
 ///|

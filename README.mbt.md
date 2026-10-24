@@ -9,6 +9,7 @@ Implemented so far:
 - source spans and structured diagnostics;
 - a recovering Rego v1 lexer;
 - expression and reference parsing, including arrays, objects, sets, JSON string escapes, and key/value `some-in` binders;
+- array comprehensions with semicolon-separated bodies and local variable scope;
 - package, import, default, complete, and `contains` rule parsing;
 - exact finite decimal values backed by arbitrary-precision integers;
 - JSON conversion that preserves exact decimal representations;
@@ -24,7 +25,7 @@ built-ins include `count`, numeric `sum`/`min`/`max` over arrays and sets,
 Two-variable `some-in` over sets and composite binding patterns are reported as
 unsupported. `min` and `max` currently accept numeric collections only. Division,
 additional built-ins and deterministic result normalization remain open work. The
-`conformance/` package currently contains seven first-party semantic regression
+`conformance/` package currently contains eight first-party semantic regression
 cases. It has not been checked against an installed OPA executable or OPA's
 upstream test corpus. The implementation plan under `docs/superpowers/plans/`
 tracks the exact status.
@@ -39,13 +40,16 @@ moon run cmd/moonrego --target native -- check examples/authz
 moon run cmd/moonrego --target native -- test examples/authz
 moon run cmd/moonrego --target native -- eval 'data.authz.allow' \
   -i examples/authz/input-allowed.json --format json examples/authz
+moon run cmd/moonrego --target native -- eval 'data.authz.admin_roles' \
+  -i examples/authz/input-allowed.json --format json examples/authz
 moon run cmd/moonrego --target native -- eval 'data.config.valid' \
   -i examples/config_check/input-valid.json examples/config_check
 ```
 
 The example policy returns `true` for the allowed input and `false` for
-`input-denied.json`; the configuration example checks replica count, image, and
-public exposure. Invalid built-in arguments are undefined by default;
+`input-denied.json`; `admin_roles` demonstrates an array comprehension that
+keeps configured roles. The configuration example checks replica count, image,
+and public exposure. Invalid built-in arguments are undefined by default;
 `--strict-builtin-errors` reports them as evaluation diagnostics.
 
 ## Local verification

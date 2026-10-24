@@ -34,6 +34,11 @@ reference distinct from an explicit JSON `null`. Query bodies carry an array of
 binding environments from one expression to the next, so iteration and
 backtracking can yield several results.
 
+Array comprehensions evaluate their body in a copied binding environment, then
+evaluate the result expression once for each successful row. This keeps local
+variables scoped to the comprehension and charges body and projection work to
+the same evaluation step budget.
+
 Complete rules collect successful values and report a conflict when definitions
 produce unequal values. A default is used only when the complete rule has no
 value. `contains` rules collect distinct values as a Rego set. Compilation

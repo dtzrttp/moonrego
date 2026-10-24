@@ -50,6 +50,18 @@ test "parses array literals" {
 }
 
 ///|
+test "parses array comprehensions with a semicolon-separated body" {
+  let parsed = @parser.parse_query(
+    "[role | some role in input.roles; role != \"guest\"]",
+  )
+  inspect(
+    parsed.syntax(),
+    content="ArrayComprehension(role,[SomeIn(role,Ref(input,[Field(roles)])),Binary(NotEqual,role,String(guest))])",
+  )
+  assert_eq(parsed.diagnostics().length(), 0)
+}
+
+///|
 test "parses object literals with string keys" {
   let parsed = @parser.parse_query("{\"role\": input.role, \"active\": true}")
   inspect(

@@ -4,6 +4,8 @@ default allow := false
 
 allowed_roles := {"admin", "operator"}
 
+admin_roles := [role | some role in input.roles; role in data.authz.allowed_roles]
+
 allow if {
   some role in input.roles
   role in data.authz.allowed_roles

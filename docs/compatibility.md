@@ -11,7 +11,7 @@ translated into different semantics.
 | --- | --- |
 | Modules | `package`, `import data...` and aliases |
 | Rules | Constant, `default`, complete boolean/value rules with `if`, and `contains` set rules |
-| Expressions | JSON literals, arrays, string-key objects, sets, references, assignment, comparisons, `in`, `not`, and exact `+`, `-`, `*` |
+| Expressions | JSON literals, arrays, string-key objects, sets, array comprehensions, references, assignment, comparisons, `in`, `not`, and exact `+`, `-`, `*` |
 | Iteration | `some value in collection`; `some key, value in collection` for arrays and objects |
 | Compiler | Unsafe-variable checks, builtin name/arity checks, rule-shape/default conflicts, and recursion checks |
 | Evaluation | `input`/`data`, backtracking, complete/default/set rules, conflict diagnostics, and a maximum step count |
@@ -23,16 +23,21 @@ accepts two arrays. `object.get` supports a string key or a path array through
 objects and arrays, and returns its default if the path is missing. `object.keys`
 returns a set of string keys.
 
+Array comprehensions use the Rego form `[value | body]`. Their body accepts
+semicolon-separated expressions; variables bound there are local to the
+comprehension. Results preserve iteration order and duplicate values. Set and
+object comprehensions are not implemented.
+
 ## Not implemented
 
 - Rego v0 compatibility syntax;
-- division, remainder, comprehensions, user functions, `every`, `else`, or `with`;
+- division, remainder, set/object comprehensions, user functions, `every`, `else`, or `with`;
 - two-variable `some-in` over sets and composite binding patterns;
 - most OPA builtins, including generic `sort`, `product`, and non-numeric `min`/`max`;
 - result-count, output-byte, and recursion-depth budgets;
 - complete deterministic result normalization, tracing, coverage, bundles, or OPA services.
 
-The current conformance package has seven first-party semantic regression cases.
+The current conformance package has eight first-party semantic regression cases.
 OPA is not installed in the development environment, and no upstream OPA test
 fixtures have been copied or run as an oracle. See `conformance/README.md` and
 the root `NOTICE.md` for test and source provenance.

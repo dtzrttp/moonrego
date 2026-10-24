@@ -76,6 +76,62 @@ test "some-in pair reports unsupported set key-value iteration" {
 }
 
 ///|
+test "array comprehension filters values and preserves duplicates" {
+  let input : @value.Value = @value.Value::Object({
+    "roles": @value.Value::array([
+      @value.Value::string("guest"),
+      @value.Value::string("admin"),
+      @value.Value::string("admin"),
+    ]),
+  })
+  let result = @eval.eval_query(
+    "[role | some role in input.roles; role != \"guest\"]",
+    input,
+    @eval.EvalOptions::new(1000),
+  )
+  assert_eq(result.diagnostics().length(), 0)
+  assert_eq(result.values().length(), 1)
+  match result.values()[0] {
+    @value.Value::Array(items) => {
+      assert_eq(items.length(), 2)
+      assert_true(items[0].equal(@value.Value::string("admin")))
+      assert_true(items[1].equal(@value.Value::string("admin")))
+    }
+    _ => assert_true(false)
+  }
+}
+
+///|
+test "array comprehension returns an empty array when its body has no results" {
+  let result = @eval.eval_query(
+    "[role | some role in input.roles; role == \"admin\"]",
+    @value.Value::Object({
+      "roles": @value.Value::array([@value.Value::string("guest")]),
+    }),
+    @eval.EvalOptions::new(1000),
+  )
+  assert_eq(result.diagnostics().length(), 0)
+  assert_eq(result.values().length(), 1)
+  assert_true(result.values()[0].equal(@value.Value::array([])))
+}
+
+///|
+test "array comprehension step exhaustion returns no partial result" {
+  let result = @eval.eval_query(
+    "[item | some item in input.items]",
+    @value.Value::Object({
+      "items": @value.Value::array([
+        @value.Value::number(@value.Number::parse("1").unwrap()),
+      ]),
+    }),
+    @eval.EvalOptions::new(2),
+  )
+  assert_eq(result.values().length(), 0)
+  assert_eq(result.diagnostics().length(), 1)
+  assert_eq(result.diagnostics()[0].code(), "rego_eval_step_limit")
+}
+
+///|
 test "false predicates produce no query results" {
   let result = @eval.eval_query(
     "input.enabled == true",
