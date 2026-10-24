@@ -41,7 +41,7 @@ set results use the shared evaluation step budget.
 - result-count, output-byte, and recursion-depth budgets;
 - complete deterministic result normalization, tracing, coverage, bundles, or OPA services.
 
-The current conformance package has eight first-party semantic regression cases.
+The current conformance package has ten first-party semantic regression cases.
 OPA is not installed in the development environment, and no upstream OPA test
 fixtures have been copied or run as an oracle. See `conformance/README.md` and
 the root `NOTICE.md` for test and source provenance.
