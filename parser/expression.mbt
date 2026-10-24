@@ -167,6 +167,29 @@ fn Parser::parse_object_or_set(
     return None
   }
   if self.current().kind() is @syntax.TokenKind::Colon {
+    self.advance() |> ignore
+    guard self.parse_precedence(0) is Some(first_value) else { return None }
+    if self.current().kind() is @syntax.TokenKind::Pipe {
+      self.advance() |> ignore
+      let body = self.parse_comprehension_body()
+      if body.length() == 0 {
+        self.error("object comprehension body must not be empty")
+        return None
+      }
+      if self.current().kind() is @syntax.TokenKind::RightBrace {
+        let end = self.advance().span()
+        return Some(
+          @syntax.Expr::ObjectComprehension(
+            first,
+            first_value,
+            body,
+            start.join(end),
+          ),
+        )
+      }
+      self.error("expected '}' after object comprehension")
+      return None
+    }
     let first_key = match first {
       @syntax.Expr::Term(@syntax.Term::String(key), _) => key
       _ => {
@@ -174,8 +197,6 @@ fn Parser::parse_object_or_set(
         return None
       }
     }
-    self.advance() |> ignore
-    guard self.parse_precedence(0) is Some(first_value) else { return None }
     let fields : Array[(String, @syntax.Expr)] = [(first_key, first_value)]
     for ;; {
       if self.current().kind() is @syntax.TokenKind::Comma {

@@ -244,6 +244,17 @@ fn collect_import_dependencies(
         )
       }
     }
+    @syntax.Expr::ObjectComprehension(key, value, body, _) => {
+      collect_import_dependencies(key, owner, aliases, known_keys, dependencies)
+      collect_import_dependencies(
+        value, owner, aliases, known_keys, dependencies,
+      )
+      for expression in body {
+        collect_import_dependencies(
+          expression, owner, aliases, known_keys, dependencies,
+        )
+      }
+    }
     @syntax.Expr::Term(@syntax.Term::Object(items), _) =>
       for (_, value) in items {
         collect_import_dependencies(
@@ -392,6 +403,13 @@ fn collect_dependencies(
     }
     @syntax.Expr::SetComprehension(element, body, _) => {
       collect_dependencies(element, owner, known_keys, dependencies)
+      for expression in body {
+        collect_dependencies(expression, owner, known_keys, dependencies)
+      }
+    }
+    @syntax.Expr::ObjectComprehension(key, value, body, _) => {
+      collect_dependencies(key, owner, known_keys, dependencies)
+      collect_dependencies(value, owner, known_keys, dependencies)
       for expression in body {
         collect_dependencies(expression, owner, known_keys, dependencies)
       }
@@ -619,6 +637,16 @@ fn check_expression(
         safe = check_expression(expression, local_bound, diagnostics) && safe
       }
       check_expression(element, local_bound, diagnostics) && safe
+    }
+    @syntax.Expr::ObjectComprehension(key, value, body, _) => {
+      let local_bound = bound.copy()
+      let mut safe = true
+      for expression in body {
+        safe = check_expression(expression, local_bound, diagnostics) && safe
+      }
+      let key_safe = check_expression(key, local_bound, diagnostics)
+      let value_safe = check_expression(value, local_bound, diagnostics)
+      key_safe && value_safe && safe
     }
   }
 }

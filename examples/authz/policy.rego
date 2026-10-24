@@ -8,6 +8,8 @@ admin_roles := [role | some role in input.roles; role in data.authz.allowed_role
 
 matched_roles := {role | some role in input.roles; role in data.authz.allowed_roles}
 
+role_labels := {role: upper(role) | some role in input.roles}
+
 allow if {
   some role in input.roles
   role in data.authz.allowed_roles

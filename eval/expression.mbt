@@ -363,6 +363,54 @@ fn eval_value(
       }
       Some(@value.Value::Set(unique))
     }
+    @syntax.Expr::ObjectComprehension(
+      key_expression,
+      value_expression,
+      body,
+      span
+    ) => {
+      let rows = eval_body(body, environment, context)
+      if context.diagnostics.length() > 0 {
+        return None
+      }
+      let fields : Map[String, @value.Value] = Map([])
+      for (row_environment, _) in rows {
+        let key = match eval_value(key_expression, row_environment, context) {
+          Some(@value.Value::String(key)) => key
+          Some(_) => {
+            context.diagnostics.push(
+              @diagnostic.Diagnostic::error(
+                @diagnostic.Stage::Eval,
+                "rego_eval_type_error",
+                "object comprehension keys must be strings",
+                key_expression.span(),
+              ),
+            )
+            return None
+          }
+          None => return None
+        }
+        guard eval_value(value_expression, row_environment, context)
+          is Some(value) else {
+          return None
+        }
+        match fields.get(key) {
+          Some(_) => {
+            context.diagnostics.push(
+              @diagnostic.Diagnostic::error(
+                @diagnostic.Stage::Eval,
+                "rego_eval_conflict_error",
+                "object comprehension produced duplicate key \"\{key}\"",
+                span,
+              ),
+            )
+            return None
+          }
+          None => fields[key] = value
+        }
+      }
+      Some(@value.Value::Object(fields))
+    }
     @syntax.Expr::SomeIn(_, _, _) => None
     @syntax.Expr::SomeInPair(_, _, _, _) => None
   }

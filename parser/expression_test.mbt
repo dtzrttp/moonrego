@@ -96,6 +96,34 @@ test "rejects set comprehensions with an empty body" {
 }
 
 ///|
+test "parses object comprehensions with computed keys and values" {
+  let parsed = @parser.parse_query(
+    "{role: upper(role) | some role in input.roles}",
+  )
+  inspect(
+    parsed.syntax(),
+    content="ObjectComprehension(role,Call(upper,[role]),[SomeIn(role,Ref(input,[Field(roles)]))])",
+  )
+  assert_eq(parsed.diagnostics().length(), 0)
+}
+
+///|
+test "rejects object comprehensions with an empty body" {
+  let parsed = @parser.parse_query("{key: value | }")
+  assert_true(parsed.diagnostics().length() > 0)
+  assert_true(
+    parsed.diagnostics().all(fn(item) { item.code() == "rego_parse_error" }),
+  )
+  assert_true(
+    parsed
+    .diagnostics()
+    .any(fn(item) {
+      item.message() == "object comprehension body must not be empty"
+    }),
+  )
+}
+
+///|
 test "parses object literals with string keys" {
   let parsed = @parser.parse_query("{\"role\": input.role, \"active\": true}")
   inspect(

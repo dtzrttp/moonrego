@@ -9,7 +9,7 @@ Implemented so far:
 - source spans and structured diagnostics;
 - a recovering Rego v1 lexer;
 - expression and reference parsing, including arrays, objects, sets, JSON string escapes, and key/value `some-in` binders;
-- array comprehensions with semicolon-separated bodies and local variable scope;
+- array, set, and object comprehensions with semicolon-separated bodies and local variable scope;
 - package, import, default, complete, and `contains` rule parsing;
 - exact finite decimal values backed by arbitrary-precision integers;
 - JSON conversion that preserves exact decimal representations;
@@ -47,9 +47,11 @@ moon run cmd/moonrego --target native -- eval 'data.config.valid' \
 ```
 
 The example policy returns `true` for the allowed input and `false` for
-`input-denied.json`; `admin_roles` demonstrates an array comprehension that
-keeps configured roles. The configuration example checks replica count, image,
-and public exposure. Invalid built-in arguments are undefined by default;
+`input-denied.json`; `admin_roles`, `matched_roles`, and `role_labels` demonstrate
+array, set, and object comprehensions over configured roles. Object comprehensions
+report a conflict for any repeated key, including keys associated with equal
+values. The configuration example checks replica count, image, and public
+exposure. Invalid built-in arguments are undefined by default;
 `--strict-builtin-errors` reports them as evaluation diagnostics.
 
 ## Local verification

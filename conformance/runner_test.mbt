@@ -135,6 +135,29 @@ test "set comprehensions return distinct values in rule definitions" {
 }
 
 ///|
+test "object comprehensions build role lookup objects in rules" {
+  let source =
+    #|package p
+    #|role_labels := {role: upper(role) | some role in input.roles}
+  let result = eval_policy_case(
+    source,
+    "data.p.role_labels",
+    @value.Value::Object({
+      "roles": @value.Value::array([
+        @value.Value::string("admin"),
+        @value.Value::string("editor"),
+      ]),
+    }),
+  )
+  expect_values(result, [
+    @value.Value::Object({
+      "admin": @value.Value::string("ADMIN"),
+      "editor": @value.Value::string("EDITOR"),
+    }),
+  ])
+}
+
+///|
 test "contains rules collect unique values" {
   let source =
     #|package p

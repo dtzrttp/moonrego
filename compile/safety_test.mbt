@@ -70,6 +70,21 @@ test "set comprehension bindings are local and checked for safety" {
 }
 
 ///|
+test "object comprehension key and value use local bindings" {
+  let safe = @compile.compile_source(
+    "package p\nroles := {role: upper(role) | some role in input.roles}", "object-comprehension-safe.rego",
+  )
+  assert_eq(safe.length(), 0)
+  let escaping = @compile.compile_source(
+    "package p\nroles := {role: role | some role in input.roles}\nallow if role == \"admin\"",
+    "object-comprehension-scope.rego",
+  )
+  assert_true(
+    escaping.any(fn(diagnostic) { diagnostic.code() == "rego_unsafe_var_error" }),
+  )
+}
+
+///|
 test "rejects multiple default definitions for one rule" {
   let diagnostics = @compile.compile_source(
     "package p\ndefault allow := false\ndefault allow := true", "defaults.rego",

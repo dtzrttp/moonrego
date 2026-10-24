@@ -258,6 +258,88 @@ test "set literals charge value deduplication to the step budget" {
 }
 
 ///|
+test "object comprehension evaluates computed role mappings" {
+  let result = @eval.eval_query(
+    "{role: upper(role) | some role in input.roles}",
+    @value.Value::Object({
+      "roles": @value.Value::array([
+        @value.Value::string("admin"),
+        @value.Value::string("editor"),
+        @value.Value::string("viewer"),
+      ]),
+    }),
+    @eval.EvalOptions::new(1000),
+  )
+  assert_eq(result.diagnostics().length(), 0)
+  assert_eq(result.values().length(), 1)
+  assert_true(
+    result.values()[0].equal(
+      @value.Value::Object({
+        "admin": @value.Value::string("ADMIN"),
+        "editor": @value.Value::string("EDITOR"),
+        "viewer": @value.Value::string("VIEWER"),
+      }),
+    ),
+  )
+}
+
+///|
+test "object comprehension reports conflicting values for one key" {
+  let result = @eval.eval_query(
+    "{item.name: item.role | some item in input.items}",
+    @value.Value::Object({
+      "items": @value.Value::array([
+        @value.Value::Object({
+          "name": @value.Value::string("alpha"),
+          "role": @value.Value::string("reader"),
+        }),
+        @value.Value::Object({
+          "name": @value.Value::string("alpha"),
+          "role": @value.Value::string("writer"),
+        }),
+      ]),
+    }),
+    @eval.EvalOptions::new(1000),
+  )
+  assert_eq(result.values().length(), 0)
+  assert_eq(result.diagnostics().length(), 1)
+  assert_eq(result.diagnostics()[0].code(), "rego_eval_conflict_error")
+}
+
+///|
+test "object comprehension rejects duplicate keys with equal values" {
+  let result = @eval.eval_query(
+    "{role: upper(role) | some role in input.roles}",
+    @value.Value::Object({
+      "roles": @value.Value::array([
+        @value.Value::string("admin"),
+        @value.Value::string("admin"),
+      ]),
+    }),
+    @eval.EvalOptions::new(1000),
+  )
+  assert_eq(result.values().length(), 0)
+  assert_eq(result.diagnostics().length(), 1)
+  assert_eq(result.diagnostics()[0].code(), "rego_eval_conflict_error")
+}
+
+///|
+test "object comprehension rejects non-string keys" {
+  let result = @eval.eval_query(
+    "{item: true | some item in input.items}",
+    @value.Value::Object({
+      "items": @value.Value::array([
+        @value.Value::number(@value.Number::parse("1").unwrap()),
+      ]),
+    }),
+    @eval.EvalOptions::new(1000),
+  )
+  assert_eq(result.values().length(), 0)
+  assert_eq(result.diagnostics().length(), 1)
+  assert_eq(result.diagnostics()[0].code(), "rego_eval_type_error")
+}
+
+///|
 test "false predicates produce no query results" {
   let result = @eval.eval_query(
     "input.enabled == true",
