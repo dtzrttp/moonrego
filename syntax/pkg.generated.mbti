@@ -35,6 +35,7 @@ pub(all) enum Expr {
   Call(String, Array[Expr], @diagnostic.SourceSpan)
   SomeIn(String, Expr, @diagnostic.SourceSpan)
   SomeInPair(String, String, Expr, @diagnostic.SourceSpan)
+  Every(String?, String, Expr, Array[Expr], @diagnostic.SourceSpan)
   ArrayComprehension(Expr, Array[Expr], @diagnostic.SourceSpan)
   SetComprehension(Expr, Array[Expr], @diagnostic.SourceSpan)
   ObjectComprehension(Expr, Expr, Array[Expr], @diagnostic.SourceSpan)
