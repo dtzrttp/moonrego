@@ -153,6 +153,38 @@ test "array comprehension charges the budget while generating body rows" {
 }
 
 ///|
+test "array comprehension charges key-value iteration before binding rows" {
+  let query = "[value | some index, value in input.items]"
+  let options = @eval.EvalOptions::new(5)
+  let array_result = @eval.eval_query(
+    query,
+    @value.Value::Object({
+      "items": @value.Value::array([
+        @value.Value::number(@value.Number::parse("1").unwrap()),
+        @value.Value::number(@value.Number::parse("2").unwrap()),
+      ]),
+    }),
+    options,
+  )
+  let object_result = @eval.eval_query(
+    query,
+    @value.Value::Object({
+      "items": @value.Value::Object({
+        "first": @value.Value::number(@value.Number::parse("1").unwrap()),
+        "second": @value.Value::number(@value.Number::parse("2").unwrap()),
+      }),
+    }),
+    options,
+  )
+  for result in [array_result, object_result] {
+    assert_eq(result.values().length(), 0)
+    assert_eq(result.diagnostics().length(), 1)
+    assert_eq(result.diagnostics()[0].code(), "rego_eval_step_limit")
+    assert_eq(result.diagnostics()[0].primary().start_offset(), 9)
+  }
+}
+
+///|
 test "false predicates produce no query results" {
   let result = @eval.eval_query(
     "input.enabled == true",
