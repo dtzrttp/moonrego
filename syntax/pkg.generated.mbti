@@ -1,8 +1,8 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "local/moonrego/syntax"
+package "dtzrttp/moonrego/syntax"
 
 import {
-  "local/moonrego/diagnostic",
+  "dtzrttp/moonrego/diagnostic",
   "moonbitlang/core/debug",
 }
 

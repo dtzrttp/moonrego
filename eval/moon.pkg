@@ -1,7 +1,7 @@
 import {
-  "local/moonrego/compile",
-  "local/moonrego/diagnostic",
-  "local/moonrego/parser",
-  "local/moonrego/syntax",
-  "local/moonrego/value",
+  "dtzrttp/moonrego/compile",
+  "dtzrttp/moonrego/diagnostic",
+  "dtzrttp/moonrego/parser",
+  "dtzrttp/moonrego/syntax",
+  "dtzrttp/moonrego/value",
 }

@@ -1,9 +1,9 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "local/moonrego/compile"
+package "dtzrttp/moonrego/compile"
 
 import {
-  "local/moonrego/diagnostic",
-  "local/moonrego/syntax",
+  "dtzrttp/moonrego/diagnostic",
+  "dtzrttp/moonrego/syntax",
 }
 
 // Values

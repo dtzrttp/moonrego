@@ -63,8 +63,8 @@ The CLI also has a native release build. `moon info --target native` inspects
 the CLI packages' backend-specific interfaces; the library packages use the
 module's canonical `wasm-gc` backend.
 
-The module namespace is temporarily `local/moonrego`. It will be replaced with
-the owner's Mooncakes namespace before release.
+The module namespace is `dtzrttp/moonrego`, matching the public repository
+owner. Mooncakes publication is pending.
 
 See [the architecture](docs/architecture.md), [the compatibility matrix](docs/compatibility.md),
 and [source notices](docs/sources.md).

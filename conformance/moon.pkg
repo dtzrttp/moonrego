@@ -1,6 +1,6 @@
 import {
-  "local/moonrego/compile",
-  "local/moonrego/eval",
-  "local/moonrego/parser",
-  "local/moonrego/value",
+  "dtzrttp/moonrego/compile",
+  "dtzrttp/moonrego/eval",
+  "dtzrttp/moonrego/parser",
+  "dtzrttp/moonrego/value",
 } for "test"

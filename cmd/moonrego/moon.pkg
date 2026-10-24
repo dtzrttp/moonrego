@@ -1,5 +1,5 @@
 import {
-  "local/moonrego/cmd/cli",
+  "dtzrttp/moonrego/cmd/cli",
   "moonbitlang/async",
   "moonbitlang/core/env",
 }

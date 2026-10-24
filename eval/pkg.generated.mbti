@@ -1,10 +1,10 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "local/moonrego/eval"
+package "dtzrttp/moonrego/eval"
 
 import {
-  "local/moonrego/compile",
-  "local/moonrego/diagnostic",
-  "local/moonrego/value",
+  "dtzrttp/moonrego/compile",
+  "dtzrttp/moonrego/diagnostic",
+  "dtzrttp/moonrego/value",
 }
 
 // Values

@@ -1,4 +1,4 @@
 import {
-  "local/moonrego/diagnostic",
-  "local/moonrego/syntax",
+  "dtzrttp/moonrego/diagnostic",
+  "dtzrttp/moonrego/syntax",
 }

@@ -1,4 +1,4 @@
 import {
-  "local/moonrego/diagnostic",
+  "dtzrttp/moonrego/diagnostic",
   "moonbitlang/core/debug",
 }

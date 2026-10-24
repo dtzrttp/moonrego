@@ -45,3 +45,5 @@ See the [architecture](docs/architecture.md),
 ## License
 
 Apache-2.0. See [LICENSE](LICENSE) and [NOTICE.md](NOTICE.md).
+
+The module namespace is `dtzrttp/moonrego`; Mooncakes publication is pending.
