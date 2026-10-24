@@ -27,21 +27,29 @@
 
 ## Execution status (2026-10-24)
 
-Implementation and local tests through Task 6 are complete on branch
-`codex/rego-every`. OPA v1.21.4 is not installed, so Task 1's oracle execution
-and comparison remain pending; do not treat the listed OPA expectations as
-observed results. The local stable toolchain reports `moon 0.1.20261023`,
-`moonc v0.10.17+d971670cd`, and `moonrun 0.1.20261023`; an attempted stable
-upgrade could not replace the running Windows executable, and the download
-endpoint could not be authenticated, so latest-stable status is not confirmed.
-Task 7 records the final local checks and these limits. No GitHub repository
-operation has been performed for this branch.
+Implementation, follow-up review fixes, and local release-gate verification are
+complete on branch codex/rego-every. The second review of d945f80 found only
+the stale evaluator test count in the oracle README; it is corrected to 50/50
+below. The all-target suite passes: 130 tests each on wasm, wasm-gc, and JS;
+133 native tests. Parser and evaluator packages pass 32/32 and 50/50, and the
+conformance suite passes 11/11. moon fmt --check, moon check --deny-warn
+--target all, moon build --deny-warn --target all, moon info, and both
+every CLI examples pass.
+
+OPA v1.21.4 is not installed. Downloading its official Windows binary failed
+with proxy authentication, so Task 1's oracle execution and comparison remain
+pending; the fixture expectations are not observations. The local MoonBit
+toolchain reports moon 0.1.20261023, moonc v0.10.17+d971670cd, and moonrun
+0.1.20261023. A stable upgrade could not replace the current Windows
+executable, and direct official downloads also failed proxy authentication;
+latest-stable status is not confirmed. No GitHub repository operation has
+been performed for this branch. See docs/verification.md for command details.
 
 ---
 
 ## File Map
 
-- `conformance/opa/every.rego`, `conformance/opa/every-input.json`, `conformance/opa/every-blocked-input.json`, `conformance/opa/every-noncollection-input.json`, `conformance/opa/not-every.rego`, `conformance/opa/every-set-pair.rego`, `conformance/opa/README.md`: first-party cases and reproducible OPA v1.21.4 oracle evidence; not executed by CI.
+- `conformance/opa/every.rego`, `conformance/opa/every-input.json`, `conformance/opa/every-blocked-input.json`, `conformance/opa/every-noncollection-input.json`, `conformance/opa/every-duplicate-binder.rego`, `conformance/opa/every-duplicate-binder-input.json`, `conformance/opa/not-every.rego`, `conformance/opa/every-set-pair.rego`, `conformance/opa/README.md`: first-party cases and reproducible OPA v1.21.4 oracle commands; not executed by CI.
 - `syntax/expr.mbt`: public `Expr::Every` variant, source span, and syntax representation.
 - `parser/expression.mbt`: parse one- and two-variable headers and braced bodies. The `Every` token and lexer keyword already exist in `syntax/token.mbt` and `internal/lexer/lexer.mbt`.
 - `parser/expression_test.mbt`, `parser/expression_error_test.mbt`: successful forms, nested bodies, spans, and rejection tests.
@@ -64,6 +72,8 @@ operation has been performed for this branch.
 - Create: `conformance/opa/every-noncollection-input.json`
 - Create: `conformance/opa/not-every.rego`
 - Create: `conformance/opa/every-set-pair.rego`
+- Create: `conformance/opa/every-duplicate-binder.rego`
+- Create: `conformance/opa/every-duplicate-binder-input.json`
 - Create: `conformance/opa/README.md`
 
 **Interfaces:**
@@ -160,6 +170,7 @@ Create `conformance/opa/every-blocked-input.json` with roles `["admin", "blocked
 Create `conformance/opa/every-noncollection-input.json` with `{"value": 7}`.
 Create `conformance/opa/not-every.rego` containing `package every_negative` and `allow if { not every role in input.roles { true } }`.
 Create `conformance/opa/every-set-pair.rego` containing `package every_set_pair` and `allow if { every key, value in {"item"} { true } }`.
+Create `conformance/opa/every-duplicate-binder.rego` and its input fixture to check equal and unequal object key/value pairs with the same binder name.
 
 - [ ] **Step 2: Run and record the pinned oracle**
 
@@ -185,6 +196,8 @@ Expected output for `array_every`, `object_every`, `set_every`, `object_key_ever
 - [ ] **Step 3: Compare oracle results with the approved spec**
 
 Expected: core universal quantification, empty-domain, and no-leak behavior matches the spec. If any core result differs, stop before MoonBit implementation, update the design document with the OPA evidence, and request review. For diagnostic-code differences already allowed by the spec, retain the MoonReGo code and record the compatibility difference.
+
+Pending because the official OPA binary could not be downloaded through the configured proxy. The follow-up oracle cases include repeated binder names; their OPA outcome is still unknown.
 
 - [x] **Step 4: Commit the reproducible oracle record**
 
@@ -489,9 +502,15 @@ git -c user.name=dtzrttp -c user.email=313799694+dtzrttp@users.noreply.github.co
 
 - [ ] **Step 1: Confirm the latest local MoonBit toolchain**
 
-Run and record `moon version --all` first. Compare it with the current official stable channel; if behind, run `moon upgrade` without `--dev` and repeat the command. Expected: stable `moon`, `moonc`, and `moonrun` versions are reported. Record the versions and command output in `docs/compatibility.md` or the verification report, and note whether the stable channel changed the installed toolchain. Do not select the development channel. The existing CI installs from the default stable installer and prints `moon version --all`; its remote version and result remain unverified while GitHub work is paused.
+`moon version --all` and the official stable documentation were checked. The
+installed versions are in `docs/verification.md`; latest-stable status remains
+unconfirmed because `moon upgrade` could not replace the current Windows
+executable and official download requests failed proxy authentication. No
+development channel was selected. This is the only unresolved local toolchain
+check in Task 7. The CI uses the default stable installer, but its remote
+version and result remain unverified while GitHub work is paused.
 
-- [ ] **Step 2: Run formatting, check, tests, build, and interface generation**
+- [x] **Step 2: Run formatting, check, tests, build, and interface generation**
 
 Run these commands in order:
 
@@ -505,17 +524,17 @@ moon info
 
 Expected: formatting and all-target checks/build pass; all native, wasm, wasm-gc, and JavaScript tests pass. `moon info` completes; generated `.mbti` files include only the intentional public `Expr::Every` API change. Do not pass `--deny-warn` to `moon fmt` or `moon info`.
 
-- [ ] **Step 3: Review local source and repository state**
+- [x] **Step 3: Review local source and repository state**
 
-Run `git diff --check`, `git status --short`, `git rev-list --count HEAD`, `git log --oneline -12`, `rg -n "every" docs/compatibility.md README.md README.mbt.md conformance/opa`, and `moon run cmd/moonrego --target native -- --help`. Confirm the project history remains above ten substantive commits and no downloaded OPA executable, generated unrelated file, or ignored submission document entered the Git diff. Resolve every diagnostic and rerun the failed command before finalizing.
+Run `git diff --check`, `git status --short`, `git rev-list --count HEAD`, `git log --oneline -12`, `rg -n "every" docs/compatibility.md README.md README.mbt.md conformance/opa`, and `moon run cmd/moonrego --target native -- --help`. Confirm the project history remains above ten substantive commits and no downloaded OPA executable, generated unrelated file, or ignored submission document entered the Git diff. Resolve every diagnostic and rerun the failed command before finalizing. **Verified locally:** commit `d945f80`, 20 meaningful commits before the final verification-record commit, 41 `.mbt` files / 4,694 production lines / 2,007 test lines, and no generated interface diff after `moon info`.
 
-- [ ] **Step 4: Commit final verified interface and documentation corrections**
+- [x] **Step 4: Commit final verified interface and documentation corrections**
 
-If `moon info` generated the intentional `syntax/pkg.generated.mbti` change or the self-review found a factual documentation correction, stage only the exact changed interface/documentation paths and commit those actual files together. Skip this commit if there are no final corrections to commit:
+The second review identified a stale test count in conformance/opa/README.md. The corrected count and this final verification record are committed as the closing documentation milestone. moon info produced no new interface changes.
 
 ```powershell
-git add syntax/pkg.generated.mbti docs/compatibility.md
-git -c user.name=dtzrttp -c user.email=313799694+dtzrttp@users.noreply.github.com commit -m "Finalize Rego every verification"
+git add conformance/opa/README.md docs/superpowers/plans/2026-10-24-rego-every.md docs/verification.md
+git -c user.name=dtzrttp -c user.email=313799694+dtzrttp@users.noreply.github.com commit -m "Record final every verification"
 ```
 
 Run `git status --short` and `git show --stat --oneline HEAD`; expected: clean worktree and only files for this feature.
