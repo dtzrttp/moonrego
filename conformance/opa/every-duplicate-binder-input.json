@@ -1,0 +1,8 @@
+{
+  "equal": {
+    "same": "same"
+  },
+  "unequal": {
+    "key": "value"
+  }
+}

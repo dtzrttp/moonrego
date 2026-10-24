@@ -30,8 +30,9 @@ moon run cmd/moonrego --target native -- eval 'data.access.allow' \
   -i examples/every/input-blocked.json --format json examples/every/policy.rego
 ```
 
-The first command validates the policy, the second runs its `test_` rules, and
-the last evaluates the allowed authorization input. The policy also exposes
+The first two commands validate the authorization policy and run its `test_`
+rules; the third evaluates the allowed authorization input. The final two
+commands evaluate the allowed and blocked `every` inputs. The policy also exposes
 `data.authz.matched_roles` as a set and `data.authz.role_labels` as an object,
 both built by comprehensions over the input roles. More examples and the
 complete local verification commands are in [README.mbt.md](README.mbt.md).

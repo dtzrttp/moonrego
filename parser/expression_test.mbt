@@ -35,10 +35,16 @@ test "some-in parses both key and value binders" {
 
 ///|
 test "parses every with a value binder and braced body" {
-  let parsed = @parser.parse_query(
-    "every role in input.roles { role != \"blocked\" }",
-  )
+  let query = "every role in input.roles { role != \"blocked\" }"
+  let parsed = @parser.parse_query(query)
   assert_eq(parsed.diagnostics().length(), 0)
+  match parsed.expression() {
+    Some(expression) => {
+      assert_eq(expression.span().start_offset(), 0)
+      assert_eq(expression.span().end_offset(), query.length())
+    }
+    None => assert_true(false)
+  }
   inspect(
     parsed.syntax(),
     content="Every(None,role,Ref(input,[Field(roles)]),[Binary(NotEqual,role,String(blocked))])",

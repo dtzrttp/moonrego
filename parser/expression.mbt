@@ -502,6 +502,10 @@ fn Parser::parse_every(self : Parser) -> @syntax.Expr? {
   match self.parse_body() {
     Some(body) => {
       let end = self.tokens[self.index - 1].span()
+      if body.length() == 0 {
+        self.error_at("every body must not be empty", start.join(end))
+        return None
+      }
       Some(
         @syntax.Expr::Every(key_name, value_name, domain, body, start.join(end)),
       )

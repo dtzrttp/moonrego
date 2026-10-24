@@ -32,13 +32,17 @@ strings; any repeated key produces a diagnostic, even when the associated
 values are equal. Body iteration and value comparisons used to remove duplicate
 set results use the shared evaluation step budget.
 
-`every` supports arrays, objects, and sets. Its one-variable form binds array
-elements, object keys, and set members; its two-variable form binds array
-indices and elements or object keys and values. Its header and body variables
-are local to the expression, and an empty collection passes vacuously. A
-missing domain is undefined. A defined non-collection domain reports
-`rego_type_error`; two-variable iteration over sets reports
-`rego_unsupported_feature`. `not every` is rejected during parsing.
+`every` requires a nonempty braced body and supports arrays, objects, and sets.
+Its one-variable form binds array elements, object keys, and set members; its
+two-variable form binds array indices and elements or object keys and values.
+Its header and body variables are local to the expression, and an empty
+collection passes vacuously. A missing domain is undefined. A defined
+non-collection domain reports `rego_type_error`; two-variable iteration over
+sets reports `rego_unsupported_feature`. `not every` is rejected during
+parsing. If the two header names are identical, their key and value bindings
+must be equal, so unequal pairs fail that `every` item. This follows Rego's
+general same-variable unification rule; direct OPA v1.21.4 execution remains
+pending.
 
 ## Not implemented
 

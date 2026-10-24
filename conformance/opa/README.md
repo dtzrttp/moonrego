@@ -47,6 +47,8 @@ opa eval --format raw --data conformance/opa/every.rego --input conformance/opa/
 opa check conformance/opa/not-every.rego
 opa check conformance/opa/every-set-pair.rego
 opa eval --format pretty --input conformance/opa/every-noncollection-input.json 'every item in input.value { true }'
+opa eval --format raw --data conformance/opa/every-duplicate-binder.rego --input conformance/opa/every-duplicate-binder-input.json 'data.every_duplicate_binder.equal_pair'
+opa eval --format raw --data conformance/opa/every-duplicate-binder.rego --input conformance/opa/every-duplicate-binder-input.json --fail 'data.every_duplicate_binder.unequal_pair'
 ```
 
 ## Unverified expectations
@@ -58,3 +60,13 @@ opa eval --format pretty --input conformance/opa/every-noncollection-input.json 
 - Record whether `not every` is rejected by `opa check`, whether two-variable
   iteration over a set is accepted, and the actual non-collection error stage
   and code. Do not infer these details from rolling documentation.
+- The same-name key/value binder fixture records whether OPA accepts the
+  policy and whether unequal key/value pairs make the universal expression
+  undefined. MoonReGo currently treats the repeated name as one variable and
+  requires the pair values to be equal; that interpretation is not yet
+  confirmed against OPA v1.21.4.
+
+The [published Rego grammar](https://www.openpolicyagent.org/docs/policy-reference)
+defines an `every` body as a `query`, whose first production is a required
+`literal`. MoonReGo's parser therefore rejects an empty `every` body. The
+explicit OPA v1.21.4 fixture run remains pending.

@@ -60,6 +60,25 @@ test "every rejects missing and unclosed body braces" {
 }
 
 ///|
+test "every requires a nonempty body" {
+  for
+    query in [
+      "every role in input.roles {}", "every role in input.roles { ; ; }",
+    ] {
+    let parsed = @parser.parse_query(query)
+    assert_true(parsed.diagnostics().length() > 0)
+    assert_true(
+      parsed
+      .diagnostics()
+      .all(fn(item) {
+        item.code() == "rego_parse_error" &&
+        item.primary().end_offset() > item.primary().start_offset()
+      }),
+    )
+  }
+}
+
+///|
 test "every is not allowed under unary not" {
   for
     query in [

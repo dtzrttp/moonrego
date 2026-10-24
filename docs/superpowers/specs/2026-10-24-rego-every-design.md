@@ -36,6 +36,9 @@ allow if {
 
 ## 3. 语法和支持边界
 
+`every` body 必须非空。OPA 的公开语法把 `query` 定义为一个必需的
+`literal` 加零个或多个后续表达式，因此空 body 是 parse error。
+
 ### 3.1 支持的形式
 
 ```rego
@@ -87,6 +90,10 @@ Body 使用当前规则体的表达式语法和分隔规则，可以包含已有
 
 ### 变量安全和重名
 
+两个 binder 使用相同名字时，按 Rego 的重复变量一致性处理：每个
+key/value pair 只有在两值相等时才进入 body。此边界有本地相等/不等测试
+及待运行的 OPA v1.21.4 oracle fixture；oracle 运行前仍标为待确认。
+
 - 编译安全检查先在外层变量环境检查 domain。
 - `every` 的头部变量只添加到 body 的局部安全环境；body 检查结束后丢弃局部环境，不得改变后续外层表达式的安全性。
 - 在 body 内，头部变量必须绑定到当前 domain 项；body 其余引用仍可读取已经安全的外层变量。
@@ -135,6 +142,7 @@ Every(key_name?, value_name, domain, body, span)
 ### Parser / syntax
 
 - 一变量和双变量头的 AST 与源码跨度；
+- 空 body 拒绝；
 - 数组、对象、集合 domain 的语法；
 - 多表达式、分号/换行、嵌套大括号、嵌套 `every`；
 - 缺变量、缺 `in`、缺大括号及未闭合 body 的错误位置；
@@ -153,6 +161,7 @@ Every(key_name?, value_name, domain, body, span)
 
 - 数组、对象和 set 的单变量形式；
 - 数组索引及对象 key/value 的双变量形式；
+- 重复双 binder 名的一致性行为；
 - 全部通过、某项失败、空集合、domain 未定义、非集合 domain；
 - body 多条成功路径的存在性语义；
 - binder/body 结果不泄漏，嵌套 `every` 正确；
@@ -212,4 +221,4 @@ Every(key_name?, value_name, domain, body, span)
 - 对象单变量迭代明确沿用现有 `some value in object` 的行为，未把 key/value 语义混淆。
 - 空 domain、局部变量不泄漏、任一项失败、`not every` 限制均依据 OPA 官方文档写入。
 - 外层同名遮蔽及非集合错误类别文档没有给出完整规则，因此列为固定 OPA oracle 的实施门槛；没有伪称已验证。
-- 目前这是设计文档，没有实现、测试、接口文件或 CLI 行为的完成声明。
+- 本设计已获用户批准；实现、测试和当前剩余限制记录在同目录实施计划、`docs/verification.md` 与 `conformance/opa/README.md`。

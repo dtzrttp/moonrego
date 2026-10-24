@@ -381,6 +381,19 @@ fn eval_every_item(
   if !context.charge(span) {
     return false
   }
+  if key_name == Some(value_name) {
+    match key_value {
+      Some(key) => {
+        if !key.equal(item) {
+          return false
+        }
+        let local_environment = environment.bind_local(value_name, item)
+        let rows = eval_body(body, local_environment, context)
+        return rows.length() > 0
+      }
+      None => return false
+    }
+  }
   let local_environment = match (key_name, key_value) {
     (Some(name), Some(key)) => environment.bind_local(name, key)
     _ => environment

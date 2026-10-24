@@ -226,6 +226,30 @@ test "every pair iterates object keys and values" {
 }
 
 ///|
+test "every pair with the same binder requires equal key and value" {
+  let equal_result = @eval.eval_query(
+    "every item, item in input.items { item == \"same\" }",
+    @value.Value::Object({
+      "items": @value.Value::Object({ "same": @value.Value::string("same") }),
+    }),
+    @eval.EvalOptions::new(1000),
+  )
+  assert_eq(equal_result.diagnostics().length(), 0)
+  assert_eq(equal_result.values().length(), 1)
+  assert_true(equal_result.values()[0].equal(@value.Value::boolean(true)))
+
+  let different_result = @eval.eval_query(
+    "every item, item in input.items { item == \"value\" }",
+    @value.Value::Object({
+      "items": @value.Value::Object({ "key": @value.Value::string("value") }),
+    }),
+    @eval.EvalOptions::new(1000),
+  )
+  assert_eq(different_result.diagnostics().length(), 0)
+  assert_eq(different_result.values().length(), 0)
+}
+
+///|
 test "every one-variable object iteration binds keys and set iteration binds members" {
   let object_result = @eval.eval_query(
     "every name in input.users { startswith(name, \"team-\") }",
