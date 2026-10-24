@@ -341,6 +341,67 @@ test "nested every checks each nested collection" {
 }
 
 ///|
+test "every charges exact single and multiple item step budgets" {
+  let one_item_query = "every x in [1] { x == 1 }"
+  let one_item_exact = @eval.eval_query(
+    one_item_query,
+    @value.Value::null(),
+    @eval.EvalOptions::new(8),
+  )
+  assert_eq(one_item_exact.diagnostics().length(), 0)
+  assert_eq(one_item_exact.values().length(), 1)
+  assert_true(one_item_exact.values()[0].equal(@value.Value::boolean(true)))
+
+  let one_item_short = @eval.eval_query(
+    one_item_query,
+    @value.Value::null(),
+    @eval.EvalOptions::new(7),
+  )
+  assert_eq(one_item_short.values().length(), 0)
+  assert_eq(one_item_short.diagnostics().length(), 1)
+  assert_eq(one_item_short.diagnostics()[0].code(), "rego_eval_step_limit")
+
+  let two_item_query = "every x in [1, 1] { x == 1 }"
+  let two_item_exact = @eval.eval_query(
+    two_item_query,
+    @value.Value::null(),
+    @eval.EvalOptions::new(14),
+  )
+  assert_eq(two_item_exact.diagnostics().length(), 0)
+  assert_eq(two_item_exact.values().length(), 1)
+
+  let two_item_short = @eval.eval_query(
+    two_item_query,
+    @value.Value::null(),
+    @eval.EvalOptions::new(13),
+  )
+  assert_eq(two_item_short.values().length(), 0)
+  assert_eq(two_item_short.diagnostics().length(), 1)
+  assert_eq(two_item_short.diagnostics()[0].code(), "rego_eval_step_limit")
+}
+
+///|
+test "every propagates strict builtin errors and preserves undefined mode" {
+  let query = "every value in [\"not-a-number\"] { to_number(value) > 0 }"
+  let strict_result = @eval.eval_query(
+    query,
+    @value.Value::null(),
+    @eval.EvalOptions::new(100).with_strict_builtin_errors(true),
+  )
+  assert_eq(strict_result.values().length(), 0)
+  assert_eq(strict_result.diagnostics().length(), 1)
+  assert_eq(strict_result.diagnostics()[0].code(), "rego_eval_builtin_error")
+
+  let default_result = @eval.eval_query(
+    query,
+    @value.Value::null(),
+    @eval.EvalOptions::new(100),
+  )
+  assert_eq(default_result.values().length(), 0)
+  assert_eq(default_result.diagnostics().length(), 0)
+}
+
+///|
 test "array comprehension filters values and preserves duplicates" {
   let input : @value.Value = @value.Value::Object({
     "roles": @value.Value::array([

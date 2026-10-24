@@ -20,6 +20,13 @@ verify `opa version` prints `Version: 1.21.4`, then run and record every command
 and its stdout, stderr, and exit status below. None of the semantic outcomes
 listed here is an OPA observation yet.
 
+MoonReGo's own evaluator checks are separate from this OPA run. On 2026-10-24,
+`moon test eval --deny-warn --target native` passed 49/49 tests, including the
+step-budget boundaries for `every x in [1] { x == 1 }` (8 steps pass, 7 fail)
+and `every x in [1, 1] { x == 1 }` (14 steps pass, 13 fail), plus strict
+built-in error propagation. These results validate MoonReGo behavior only;
+they do not establish conformance with OPA.
+
 ## Queries to run
 
 From the repository root:
