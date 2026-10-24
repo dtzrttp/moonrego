@@ -233,6 +233,7 @@ fn eval_step(
       }
       results
     }
+    @syntax.Expr::Every(_, _, _, _, _) => []
     @syntax.Expr::Unary(@syntax.UnaryOp::Not, inner, _) => {
       let results = eval_step(inner, environment, context, false)
       if context.diagnostics.length() > 0 || results.length() > 0 {
@@ -413,6 +414,7 @@ fn eval_value(
     }
     @syntax.Expr::SomeIn(_, _, _) => None
     @syntax.Expr::SomeInPair(_, _, _, _) => None
+    @syntax.Expr::Every(_, _, _, _, _) => None
   }
 }
 

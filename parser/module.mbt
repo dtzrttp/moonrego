@@ -91,7 +91,7 @@ fn Parser::parse_import(self : Parser) -> @syntax.Import? {
 fn Parser::parse_body(self : Parser) -> Array[@syntax.Expr]? {
   let body : Array[@syntax.Expr] = []
   if self.current().kind() is @syntax.TokenKind::LeftBrace {
-    self.advance() |> ignore
+    let opening_span = self.advance().span()
     while !(self.current().kind() is @syntax.TokenKind::RightBrace) &&
           !self.at_end() {
       if self.current().kind() is @syntax.TokenKind::Semicolon {
@@ -112,7 +112,12 @@ fn Parser::parse_body(self : Parser) -> Array[@syntax.Expr]? {
       self.advance() |> ignore
       Some(body)
     } else {
-      self.error("expected '}' after rule body")
+      let end = if body.length() > 0 {
+        body[body.length() - 1].span()
+      } else {
+        opening_span
+      }
+      self.error_at("expected '}' after rule body", opening_span.join(end))
       None
     }
   } else {

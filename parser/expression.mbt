@@ -52,12 +52,21 @@ fn Parser::advance(self : Parser) -> @syntax.Token {
 
 ///|
 fn Parser::error(self : Parser, message : String) -> Unit {
+  self.error_at(message, self.current().span())
+}
+
+///|
+fn Parser::error_at(
+  self : Parser,
+  message : String,
+  span : @diagnostic.SourceSpan,
+) -> Unit {
   self.diagnostics.push(
     @diagnostic.Diagnostic::error(
       @diagnostic.Stage::Parse,
       "rego_parse_error",
       message,
-      self.current().span(),
+      span,
     ),
   )
 }
@@ -431,7 +440,20 @@ fn Parser::parse_unary(self : Parser) -> @syntax.Expr? {
       let start = self.advance().span()
       match self.parse_unary() {
         Some(expression) =>
-          Some(Unary(Not, expression, start.join(expression.span())))
+          match expression {
+            @syntax.Expr::Every(_, _, _, _, span) => {
+              self.diagnostics.push(
+                @diagnostic.Diagnostic::error(
+                  @diagnostic.Stage::Parse,
+                  "rego_parse_error",
+                  "every cannot be negated",
+                  start.join(span),
+                ),
+              )
+              None
+            }
+            _ => Some(Unary(Not, expression, start.join(expression.span())))
+          }
         None => None
       }
     }
@@ -444,7 +466,47 @@ fn Parser::parse_unary(self : Parser) -> @syntax.Expr? {
       }
     }
     @syntax.TokenKind::Some => self.parse_some_in()
+    @syntax.TokenKind::Every => self.parse_every()
     _ => self.parse_postfix()
+  }
+}
+
+///|
+fn Parser::parse_every(self : Parser) -> @syntax.Expr? {
+  let start = self.advance().span()
+  let first_name = match
+    self.take_identifier("expected variable after 'every'") {
+    Some(name) => name
+    None => return None
+  }
+  let (key_name, value_name) = if self.current().kind()
+    is @syntax.TokenKind::Comma {
+    self.advance() |> ignore
+    match self.take_identifier("expected second variable after ','") {
+      Some(name) => (Some(first_name), name)
+      None => return None
+    }
+  } else {
+    (None, first_name)
+  }
+  if !(self.current().kind() is @syntax.TokenKind::In) {
+    self.error("expected 'in' after every variable binder")
+    return None
+  }
+  self.advance() |> ignore
+  guard self.parse_precedence(0) is Some(domain) else { return None }
+  if !(self.current().kind() is @syntax.TokenKind::LeftBrace) {
+    self.error("expected '{' before every body")
+    return None
+  }
+  match self.parse_body() {
+    Some(body) => {
+      let end = self.tokens[self.index - 1].span()
+      Some(
+        @syntax.Expr::Every(key_name, value_name, domain, body, start.join(end)),
+      )
+    }
+    None => None
   }
 }
 

@@ -34,6 +34,30 @@ test "some-in parses both key and value binders" {
 }
 
 ///|
+test "parses every with a value binder and braced body" {
+  let parsed = @parser.parse_query(
+    "every role in input.roles { role != \"blocked\" }",
+  )
+  assert_eq(parsed.diagnostics().length(), 0)
+  inspect(
+    parsed.syntax(),
+    content="Every(None,role,Ref(input,[Field(roles)]),[Binary(NotEqual,role,String(blocked))])",
+  )
+}
+
+///|
+test "parses every with key and value binders" {
+  let parsed = @parser.parse_query(
+    "every index, role in input.roles { index >= 0; role == \"admin\" }",
+  )
+  assert_eq(parsed.diagnostics().length(), 0)
+  inspect(
+    parsed.syntax(),
+    content="Every(Some(index),role,Ref(input,[Field(roles)]),[Binary(GreaterEqual,index,Number(0)),Binary(Equal,role,String(admin))])",
+  )
+}
+
+///|
 test "not is a prefix expression" {
   let parsed = @parser.parse_query("not input.enabled")
   inspect(parsed.syntax(), content="Unary(Not,Ref(input,[Field(enabled)]))")

@@ -321,6 +321,16 @@ fn collect_import_dependencies(
       collect_import_dependencies(
         collection, owner, aliases, known_keys, dependencies,
       )
+    @syntax.Expr::Every(_, _, domain, body, _) => {
+      collect_import_dependencies(
+        domain, owner, aliases, known_keys, dependencies,
+      )
+      for expression in body {
+        collect_import_dependencies(
+          expression, owner, aliases, known_keys, dependencies,
+        )
+      }
+    }
   }
 }
 
@@ -395,6 +405,12 @@ fn collect_dependencies(
       collect_dependencies(collection, owner, known_keys, dependencies)
     @syntax.Expr::SomeInPair(_, _, collection, _) =>
       collect_dependencies(collection, owner, known_keys, dependencies)
+    @syntax.Expr::Every(_, _, domain, body, _) => {
+      collect_dependencies(domain, owner, known_keys, dependencies)
+      for expression in body {
+        collect_dependencies(expression, owner, known_keys, dependencies)
+      }
+    }
     @syntax.Expr::ArrayComprehension(element, body, _) => {
       collect_dependencies(element, owner, known_keys, dependencies)
       for expression in body {
@@ -619,6 +635,22 @@ fn check_expression(
         if !bound.contains(value_name) {
           bound.push(value_name)
         }
+      }
+      safe
+    }
+    @syntax.Expr::Every(key_name, value_name, domain, body, _) => {
+      let domain_safe = check_expression(domain, bound, diagnostics)
+      let local_bound = bound.copy()
+      match key_name {
+        Some(name) if !local_bound.contains(name) => local_bound.push(name)
+        _ => ()
+      }
+      if !local_bound.contains(value_name) {
+        local_bound.push(value_name)
+      }
+      let mut safe = domain_safe
+      for expression in body {
+        safe = check_expression(expression, local_bound, diagnostics) && safe
       }
       safe
     }

@@ -20,3 +20,55 @@ test "array comprehension requires a nonempty body" {
     parsed.diagnostics().all(fn(item) { item.code() == "rego_parse_error" }),
   )
 }
+
+///|
+test "every rejects a missing binder and missing in keyword" {
+  for
+    query in [
+      "every in input.roles { true }", "every role input.roles { true }",
+    ] {
+    let parsed = @parser.parse_query(query)
+    assert_true(parsed.diagnostics().length() > 0)
+    assert_true(
+      parsed
+      .diagnostics()
+      .all(fn(item) {
+        item.code() == "rego_parse_error" &&
+        item.primary().end_offset() > item.primary().start_offset()
+      }),
+    )
+  }
+}
+
+///|
+test "every rejects missing and unclosed body braces" {
+  for
+    query in [
+      "every role in input.roles role == \"admin\"", "every role in input.roles { role == \"admin\"",
+    ] {
+    let parsed = @parser.parse_query(query)
+    assert_true(parsed.diagnostics().length() > 0)
+    assert_true(
+      parsed
+      .diagnostics()
+      .all(fn(item) {
+        item.code() == "rego_parse_error" &&
+        item.primary().end_offset() > item.primary().start_offset()
+      }),
+    )
+  }
+}
+
+///|
+test "every is not allowed under unary not" {
+  for
+    query in [
+      "not every role in input.roles { true }", "not (every role in input.roles { true })",
+    ] {
+    let parsed = @parser.parse_query(query)
+    assert_true(parsed.diagnostics().length() > 0)
+    assert_true(
+      parsed.diagnostics().all(fn(item) { item.code() == "rego_parse_error" }),
+    )
+  }
+}

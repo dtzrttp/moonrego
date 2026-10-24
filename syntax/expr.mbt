@@ -55,6 +55,7 @@ pub(all) enum Expr {
   Call(String, Array[Expr], @diagnostic.SourceSpan)
   SomeIn(String, Expr, @diagnostic.SourceSpan)
   SomeInPair(String, String, Expr, @diagnostic.SourceSpan)
+  Every(String?, String, Expr, Array[Expr], @diagnostic.SourceSpan)
   ArrayComprehension(Expr, Array[Expr], @diagnostic.SourceSpan)
   SetComprehension(Expr, Array[Expr], @diagnostic.SourceSpan)
   ObjectComprehension(Expr, Expr, Array[Expr], @diagnostic.SourceSpan)
@@ -70,6 +71,7 @@ pub fn Expr::span(self : Expr) -> @diagnostic.SourceSpan {
     | Call(_, _, span)
     | SomeIn(_, _, span)
     | SomeInPair(_, _, _, span)
+    | Every(_, _, _, _, span)
     | ArrayComprehension(_, _, span)
     | SetComprehension(_, _, span)
     | ObjectComprehension(_, _, _, span) => span
@@ -148,6 +150,14 @@ pub fn Expr::syntax(self : Expr) -> String {
     SomeIn(name, collection, _) => "SomeIn(\{name},\{collection.syntax()})"
     SomeInPair(key, value, collection, _) =>
       "SomeInPair(\{key},\{value},\{collection.syntax()})"
+    Every(key, value, domain, body, _) => {
+      let body_syntax = body.map(fn(item) { item.syntax() }).join(",")
+      match key {
+        Some(key_name) =>
+          "Every(Some(\{key_name}),\{value},\{domain.syntax()},[\{body_syntax}])"
+        None => "Every(None,\{value},\{domain.syntax()},[\{body_syntax}])"
+      }
+    }
     ArrayComprehension(value, body, _) =>
       "ArrayComprehension(\{value.syntax()},[\{body.map(fn(item) { item.syntax() }).join(",")}])"
     SetComprehension(value, body, _) =>

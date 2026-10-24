@@ -37,6 +37,73 @@ test "accepts both variables bound by key-value some-in" {
 }
 
 ///|
+test "every uses a local scope while keeping outer variables visible" {
+  let diagnostics = @compile.compile_source(
+    (
+      #|package p
+      #|allow if {
+      #|  account := input.account
+      #|  every role in input.roles {
+      #|    account == "gold"
+      #|    role != "blocked"
+      #|    checked := role
+      #|    checked != ""
+      #|  }
+      #|  account == "gold"
+      #|}
+    ),
+    "every-scope-safe.rego",
+  )
+  assert_false(
+    diagnostics.any(fn(diagnostic) {
+      diagnostic.code() == "rego_unsafe_var_error"
+    }),
+  )
+}
+
+///|
+test "every does not export header or body assignment bindings" {
+  let diagnostics = @compile.compile_source(
+    (
+      #|package p
+      #|allow if {
+      #|  every role in input.roles {
+      #|    checked := role
+      #|  }
+      #|  role == "admin"
+      #|  checked == "admin"
+      #|}
+    ),
+    "every-scope-local.rego",
+  )
+  assert_true(
+    diagnostics.any(fn(diagnostic) {
+      diagnostic.code() == "rego_unsafe_var_error" &&
+      diagnostic.message().contains("role")
+    }),
+  )
+  assert_true(
+    diagnostics.any(fn(diagnostic) {
+      diagnostic.code() == "rego_unsafe_var_error" &&
+      diagnostic.message().contains("checked")
+    }),
+  )
+}
+
+///|
+test "every checks its domain in the outer safety scope" {
+  let diagnostics = @compile.compile_source(
+    "package p\nallow if { every role in roles { role != \"blocked\" } }", "every-unsafe-domain.rego",
+  )
+  assert_true(
+    diagnostics.any(fn(diagnostic) {
+      diagnostic.code() == "rego_unsafe_var_error" &&
+      diagnostic.message().contains("roles")
+    }),
+  )
+}
+
+///|
 test "array comprehension variables stay local to the comprehension" {
   let safe = @compile.compile_source(
     "package p\nallow if { roles := [role | some role in input.roles; role == \"admin\"]; count(roles) > 0 }",
