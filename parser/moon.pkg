@@ -1,0 +1,5 @@
+import {
+  "local/moonrego/diagnostic",
+  "local/moonrego/internal/lexer",
+  "local/moonrego/syntax",
+}

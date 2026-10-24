@@ -1,0 +1,49 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "local/moonrego/value"
+
+import {
+  "moonbitlang/core/bigint",
+}
+
+// Values
+
+// Errors
+
+// Types and methods
+pub struct Number {
+  coefficient : @bigint.BigInt
+  scale : Int32
+}
+pub fn Number::add(Self, Self) -> Self
+pub fn Number::compare(Self, Self) -> Int32
+pub fn Number::equal(Self, Self) -> Bool
+pub fn Number::multiply(Self, Self) -> Self
+pub fn Number::negate(Self) -> Self
+pub fn Number::parse(String) -> Self?
+pub fn Number::subtract(Self, Self) -> Self
+pub fn Number::to_canonical_string(Self) -> String
+
+pub(all) enum Value {
+  Null
+  Bool(Bool)
+  Number(Number)
+  String(String)
+  Array(Array[Value])
+  Object(Map[String, Value])
+  Set(Array[Value])
+}
+pub fn Value::array(Array[Self]) -> Self
+pub fn Value::boolean(Bool) -> Self
+pub fn Value::elements(Self) -> Array[Self]
+pub fn Value::equal(Self, Self) -> Bool
+pub fn Value::from_json(Json) -> Self?
+pub fn Value::kind_name(Self) -> String
+pub fn Value::null() -> Self
+pub fn Value::number(Number) -> Self
+pub fn Value::set(Array[Self]) -> Self
+pub fn Value::string(String) -> Self
+pub fn Value::to_json(Self) -> Json
+
+// Type aliases
+
+// Traits

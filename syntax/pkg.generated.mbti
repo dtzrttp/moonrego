@@ -1,0 +1,175 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "local/moonrego/syntax"
+
+import {
+  "local/moonrego/diagnostic",
+  "moonbitlang/core/debug",
+}
+
+// Values
+
+// Errors
+
+// Types and methods
+pub(all) enum BinaryOp {
+  Assign
+  Equal
+  NotEqual
+  Less
+  LessEqual
+  Greater
+  GreaterEqual
+  In
+  Add
+  Subtract
+  Multiply
+  Divide
+  Remainder
+}
+
+pub(all) enum Expr {
+  Term(Term, @diagnostic.SourceSpan)
+  Ref(Expr, Array[RefPart], @diagnostic.SourceSpan)
+  Unary(UnaryOp, Expr, @diagnostic.SourceSpan)
+  Binary(BinaryOp, Expr, Expr, @diagnostic.SourceSpan)
+  Call(String, Array[Expr], @diagnostic.SourceSpan)
+  SomeIn(String, Expr, @diagnostic.SourceSpan)
+  SomeInPair(String, String, Expr, @diagnostic.SourceSpan)
+}
+pub fn Expr::span(Self) -> @diagnostic.SourceSpan
+pub fn Expr::syntax(Self) -> String
+
+pub(all) struct Import {
+  path : Array[String]
+  alias_name : String?
+  span : @diagnostic.SourceSpan
+}
+pub fn Import::alias_name(Self) -> String?
+pub fn Import::new(Array[String], String?, @diagnostic.SourceSpan) -> Self
+pub fn Import::path(Self) -> Array[String]
+pub fn Import::path_string(Self) -> String
+
+pub(all) struct PolicyModule {
+  filename : String
+  package_path : Array[String]
+  imports : Array[Import]
+  rules : Array[Rule]
+}
+pub fn PolicyModule::filename(Self) -> String
+pub fn PolicyModule::imports(Self) -> Array[Import]
+pub fn PolicyModule::new(String, Array[String], Array[Import], Array[Rule]) -> Self
+pub fn PolicyModule::package_name(Self) -> String
+pub fn PolicyModule::package_path(Self) -> Array[String]
+pub fn PolicyModule::rules(Self) -> Array[Rule]
+
+pub(all) enum RefPart {
+  Field(String)
+  Index(Expr)
+}
+
+pub(all) enum RootDocument {
+  Input
+  Data
+}
+
+pub(all) struct Rule {
+  name : String
+  kind : RuleKind
+  body : Array[Expr]
+  span : @diagnostic.SourceSpan
+}
+pub fn Rule::body(Self) -> Array[Expr]
+pub fn Rule::kind(Self) -> RuleKind
+pub fn Rule::name(Self) -> String
+pub fn Rule::new(String, RuleKind, Array[Expr], @diagnostic.SourceSpan) -> Self
+pub fn Rule::shape(Self) -> String
+
+pub(all) enum RuleKind {
+  Default(Expr)
+  Complete(Expr?)
+  IncrementalSet(Expr)
+}
+
+pub(all) enum Term {
+  Null
+  Bool(Bool)
+  Number(String)
+  String(String)
+  Variable(String)
+  Root(RootDocument)
+  Array(Array[Expr])
+  Object(Array[(String, Expr)])
+  Set(Array[Expr])
+}
+
+pub(all) struct Token {
+  kind : TokenKind
+  span : @diagnostic.SourceSpan
+}
+pub fn Token::kind(Self) -> TokenKind
+pub fn Token::new(TokenKind, @diagnostic.SourceSpan) -> Self
+pub fn Token::span(Self) -> @diagnostic.SourceSpan
+pub fn Token::text(Self) -> String
+
+pub(all) enum TokenKind {
+  Identifier(String)
+  NumberLiteral(String)
+  StringLiteral(String)
+  RawStringLiteral(String)
+  Package
+  Import
+  As
+  Default
+  Else
+  If
+  Contains
+  In
+  Some
+  Not
+  Every
+  With
+  True
+  False
+  Null
+  Input
+  Data
+  LeftBrace
+  RightBrace
+  LeftBracket
+  RightBracket
+  LeftParen
+  RightParen
+  Comma
+  Dot
+  Colon
+  Semicolon
+  Pipe
+  Plus
+  Minus
+  Star
+  Slash
+  Percent
+  Assign
+  Equal
+  EqualEqual
+  NotEqual
+  Less
+  LessEqual
+  Greater
+  GreaterEqual
+  Eof
+} derive(Eq, @debug.Debug)
+pub fn TokenKind::equal(Self, Self) -> Bool
+pub fn TokenKind::label(Self) -> String
+pub fn TokenKind::not_equal(Self, Self) -> Bool
+pub fn TokenKind::text(Self) -> String
+pub fn TokenKind::to_repr(Self) -> @debug.Repr
+
+pub(all) enum UnaryOp {
+  Not
+  Negate
+}
+
+// Type aliases
+
+// Traits

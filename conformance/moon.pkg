@@ -1,0 +1,6 @@
+import {
+  "local/moonrego/compile",
+  "local/moonrego/eval",
+  "local/moonrego/parser",
+  "local/moonrego/value",
+} for "test"

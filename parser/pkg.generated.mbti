@@ -1,0 +1,43 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "local/moonrego/parser"
+
+import {
+  "local/moonrego/diagnostic",
+  "local/moonrego/syntax",
+}
+
+// Values
+pub fn parse_module(String, String) -> ParsedModule
+
+pub fn parse_query(String) -> ParsedQuery
+
+pub fn parse_query_body(String) -> ParsedBody
+
+// Errors
+
+// Types and methods
+pub struct ParsedBody {
+  expressions : Array[@syntax.Expr]
+  diagnostics : Array[@diagnostic.Diagnostic]
+}
+pub fn ParsedBody::diagnostics(Self) -> Array[@diagnostic.Diagnostic]
+pub fn ParsedBody::expressions(Self) -> Array[@syntax.Expr]
+
+pub struct ParsedModule {
+  policy : @syntax.PolicyModule?
+  diagnostics : Array[@diagnostic.Diagnostic]
+}
+pub fn ParsedModule::diagnostics(Self) -> Array[@diagnostic.Diagnostic]
+pub fn ParsedModule::policy(Self) -> @syntax.PolicyModule?
+
+pub struct ParsedQuery {
+  expression : @syntax.Expr?
+  diagnostics : Array[@diagnostic.Diagnostic]
+}
+pub fn ParsedQuery::diagnostics(Self) -> Array[@diagnostic.Diagnostic]
+pub fn ParsedQuery::expression(Self) -> @syntax.Expr?
+pub fn ParsedQuery::syntax(Self) -> String
+
+// Type aliases
+
+// Traits

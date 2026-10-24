@@ -1,0 +1,5 @@
+{
+  "replicas": 3,
+  "image": "registry.example/app:1.0",
+  "public": false
+}

@@ -1,0 +1,36 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "local/moonrego/eval"
+
+import {
+  "local/moonrego/compile",
+  "local/moonrego/diagnostic",
+  "local/moonrego/value",
+}
+
+// Values
+pub fn eval_program_query(@compile.Program, String, @value.Value, @value.Value, EvalOptions) -> EvalResult
+
+pub fn eval_query(String, @value.Value, EvalOptions) -> EvalResult
+
+pub fn eval_query_with_data(String, @value.Value, @value.Value, EvalOptions) -> EvalResult
+
+// Errors
+
+// Types and methods
+pub struct EvalOptions {
+  max_steps : Int32
+  strict_builtin_errors : Bool
+}
+pub fn EvalOptions::new(Int32) -> Self
+pub fn EvalOptions::with_strict_builtin_errors(Self, Bool) -> Self
+
+pub struct EvalResult {
+  values : Array[@value.Value]
+  diagnostics : Array[@diagnostic.Diagnostic]
+}
+pub fn EvalResult::diagnostics(Self) -> Array[@diagnostic.Diagnostic]
+pub fn EvalResult::values(Self) -> Array[@value.Value]
+
+// Type aliases
+
+// Traits

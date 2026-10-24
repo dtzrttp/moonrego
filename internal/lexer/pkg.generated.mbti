@@ -1,0 +1,25 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "local/moonrego/internal/lexer"
+
+import {
+  "local/moonrego/diagnostic",
+  "local/moonrego/syntax",
+}
+
+// Values
+pub fn lex(String, String) -> LexResult
+
+// Errors
+
+// Types and methods
+pub struct LexResult {
+  tokens : Array[@syntax.Token]
+  diagnostics : Array[@diagnostic.Diagnostic]
+}
+pub fn LexResult::diagnostics(Self) -> Array[@diagnostic.Diagnostic]
+pub fn LexResult::kind_labels(Self) -> Array[String]
+pub fn LexResult::tokens(Self) -> Array[@syntax.Token]
+
+// Type aliases
+
+// Traits

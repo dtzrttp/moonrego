@@ -1,0 +1,77 @@
+name: MoonBit CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libssl-dev
+
+      - name: Install macOS build dependencies
+        if: runner.os == 'macOS'
+        run: brew install openssl
+
+      - name: Install Windows build dependencies
+        if: runner.os == 'Windows'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-openssl
+
+      - name: Install MoonBit toolchain (Linux and macOS)
+        if: runner.os != 'Windows'
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+
+      - name: Install MoonBit toolchain (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
+          irm https://cli.moonbitlang.com/install/powershell.ps1 | iex
+          "$env:USERPROFILE\.moon\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
+
+      - name: Check toolchain and resolve pinned dependencies
+        run: |
+          moon version --all
+          moon update
+
+      - name: Format, check, test, and refresh interfaces
+        run: |
+          moon fmt --check
+          moon check --deny-warn --target all
+          moon build --deny-warn --target all
+          moon test --deny-warn --target all
+          moon info
+          git diff --exit-code
+
+      - name: Run CLI examples
+        run: |
+          moon run cmd/moonrego --target native -- check examples/authz
+          moon run cmd/moonrego --target native -- test examples/authz
+          moon run cmd/moonrego --target native -- eval 'data.authz.allow' -i examples/authz/input-allowed.json examples/authz
+          moon run cmd/moonrego --target native -- eval 'data.config.valid' -i examples/config_check/input-valid.json examples/config_check

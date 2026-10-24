@@ -1,0 +1,4 @@
+import {
+  "local/moonrego/diagnostic",
+  "moonbitlang/core/debug",
+}

@@ -1,0 +1,13 @@
+import {
+  "local/moonrego/compile",
+  "local/moonrego/diagnostic",
+  "local/moonrego/eval",
+  "local/moonrego/parser",
+  "local/moonrego/syntax",
+  "local/moonrego/value",
+  "moonbitlang/async/fs",
+  "moonbitlang/core/builtin",
+  "moonbitlang/core/json",
+}
+
+supported_targets = "+native"

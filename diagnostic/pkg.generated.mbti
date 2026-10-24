@@ -1,0 +1,88 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "local/moonrego/diagnostic"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+
+// Errors
+
+// Types and methods
+pub struct Diagnostic {
+  stage : Stage
+  severity : Severity
+  code : String
+  message : String
+  primary : SourceSpan
+  related : Array[RelatedLocation]
+}
+pub fn Diagnostic::code(Self) -> String
+pub fn Diagnostic::error(Stage, String, String, SourceSpan) -> Self
+pub fn Diagnostic::message(Self) -> String
+pub fn Diagnostic::primary(Self) -> SourceSpan
+pub fn Diagnostic::related(Self) -> Array[RelatedLocation]
+pub fn Diagnostic::severity(Self) -> Severity
+pub fn Diagnostic::stage(Self) -> Stage
+pub fn Diagnostic::warning(Stage, String, String, SourceSpan) -> Self
+pub fn Diagnostic::with_related(Self, String, SourceSpan) -> Self
+
+pub(all) struct RelatedLocation {
+  message : String
+  span : SourceSpan
+} derive(Eq, @debug.Debug)
+pub fn RelatedLocation::equal(Self, Self) -> Bool
+pub fn RelatedLocation::not_equal(Self, Self) -> Bool
+pub fn RelatedLocation::to_repr(Self) -> @debug.Repr
+
+pub(all) enum Severity {
+  Error
+  Warning
+} derive(Eq, @debug.Debug)
+pub fn Severity::equal(Self, Self) -> Bool
+pub fn Severity::not_equal(Self, Self) -> Bool
+pub fn Severity::to_repr(Self) -> @debug.Repr
+
+pub(all) struct SourcePos {
+  offset : Int32
+  line : Int32
+  column : Int32
+} derive(Eq, @debug.Debug)
+pub fn SourcePos::equal(Self, Self) -> Bool
+pub fn SourcePos::not_equal(Self, Self) -> Bool
+pub fn SourcePos::to_repr(Self) -> @debug.Repr
+
+pub(all) struct SourceSpan {
+  filename : String
+  start : SourcePos
+  end : SourcePos
+} derive(Eq, @debug.Debug)
+pub fn SourceSpan::end_column(Self) -> Int32
+pub fn SourceSpan::end_line(Self) -> Int32
+pub fn SourceSpan::end_offset(Self) -> Int32
+pub fn SourceSpan::equal(Self, Self) -> Bool
+pub fn SourceSpan::filename(Self) -> String
+pub fn SourceSpan::join(Self, Self) -> Self
+pub fn SourceSpan::new(String, start_offset~ : Int32, start_line~ : Int32, start_column~ : Int32, end_offset~ : Int32, end_line~ : Int32, end_column~ : Int32) -> Self
+pub fn SourceSpan::not_equal(Self, Self) -> Bool
+pub fn SourceSpan::point(String, Int32, Int32, Int32) -> Self
+pub fn SourceSpan::start_column(Self) -> Int32
+pub fn SourceSpan::start_line(Self) -> Int32
+pub fn SourceSpan::start_offset(Self) -> Int32
+pub fn SourceSpan::to_repr(Self) -> @debug.Repr
+pub fn SourceSpan::try_join(Self, Self) -> Self?
+
+pub(all) enum Stage {
+  Parse
+  Compile
+  Eval
+  Cli
+} derive(Eq, @debug.Debug)
+pub fn Stage::equal(Self, Self) -> Bool
+pub fn Stage::not_equal(Self, Self) -> Bool
+pub fn Stage::to_repr(Self) -> @debug.Repr
+
+// Type aliases
+
+// Traits

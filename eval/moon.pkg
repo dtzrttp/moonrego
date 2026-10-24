@@ -1,0 +1,7 @@
+import {
+  "local/moonrego/compile",
+  "local/moonrego/diagnostic",
+  "local/moonrego/parser",
+  "local/moonrego/syntax",
+  "local/moonrego/value",
+}

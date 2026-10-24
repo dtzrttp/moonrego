@@ -1,0 +1,32 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "local/moonrego/compile"
+
+import {
+  "local/moonrego/diagnostic",
+  "local/moonrego/syntax",
+}
+
+// Values
+pub fn compile_modules(Array[@syntax.PolicyModule]) -> CompileResult
+
+pub fn compile_source(String, String) -> Array[@diagnostic.Diagnostic]
+
+// Errors
+
+// Types and methods
+pub struct CompileResult {
+  program : Program?
+  diagnostics : Array[@diagnostic.Diagnostic]
+}
+pub fn CompileResult::diagnostics(Self) -> Array[@diagnostic.Diagnostic]
+pub fn CompileResult::program(Self) -> Program?
+
+pub struct Program {
+  modules : Array[@syntax.PolicyModule]
+}
+pub fn Program::module_for_rule(Self, String, String, String) -> @syntax.PolicyModule?
+pub fn Program::rules_for(Self, String, String) -> Array[@syntax.Rule]
+
+// Type aliases
+
+// Traits
