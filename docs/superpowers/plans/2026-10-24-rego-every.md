@@ -25,6 +25,18 @@
 - Preserve traceable history: this checkout has 11 substantive commits before the `every` work. Commit only actual milestones after their tests pass; do not make empty commits, rewrite dates, or invent contributors. GitHub operations are out of scope here.
 - Keep this work local; do not create, modify, push, or inspect a GitHub repository during this plan.
 
+## Execution status (2026-10-24)
+
+Implementation and local tests through Task 6 are complete on branch
+`codex/rego-every`. OPA v1.21.4 is not installed, so Task 1's oracle execution
+and comparison remain pending; do not treat the listed OPA expectations as
+observed results. The local stable toolchain reports `moon 0.1.20261023`,
+`moonc v0.10.17+d971670cd`, and `moonrun 0.1.20261023`; an attempted stable
+upgrade could not replace the running Windows executable, and the download
+endpoint could not be authenticated, so latest-stable status is not confirmed.
+Task 7 records the final local checks and these limits. No GitHub repository
+operation has been performed for this branch.
+
 ---
 
 ## File Map
@@ -58,7 +70,7 @@
 - Produces: named expected cases for arrays, object key/value binding, set values, empty domains, undefined domains, non-collection domains, binder/body scope, `not every`, and two-variable set iteration.
 - Consumes: OPA v1.21.4 released 2026-10-23, [official release](https://github.com/open-policy-agent/opa/releases/tag/v1.21.4).
 
-- [ ] **Step 1: Write first-party oracle policy and input**
+- [x] **Step 1: Write first-party oracle policy and input**
 
 Create `conformance/opa/every.rego`:
 
@@ -174,7 +186,7 @@ Expected output for `array_every`, `object_every`, `set_every`, `object_key_ever
 
 Expected: core universal quantification, empty-domain, and no-leak behavior matches the spec. If any core result differs, stop before MoonBit implementation, update the design document with the OPA evidence, and request review. For diagnostic-code differences already allowed by the spec, retain the MoonReGo code and record the compatibility difference.
 
-- [ ] **Step 4: Commit the reproducible oracle record**
+- [x] **Step 4: Commit the reproducible oracle record**
 
 ```powershell
 git add conformance/opa
@@ -197,7 +209,7 @@ git -c user.name=dtzrttp -c user.email=313799694+dtzrttp@users.noreply.github.co
 - Produces: parser syntax strings `Every(None,role,domain,[body...])` and `Every(Some(index),role,domain,[body...])`.
 - Produces: compiler rule that checks domain against outer scope and checks all body expressions against a copy containing the `every` binders, then discards that copy.
 
-- [ ] **Step 1: Add parser tests and run them red**
+- [x] **Step 1: Add parser tests and run them red**
 
 Add to `parser/expression_test.mbt`:
 
@@ -229,21 +241,21 @@ test "parses every with key and value binders" {
 
 Add failures for missing binder, missing `in`, missing `{`, and missing `}`. Assert each reports `rego_parse_error` with non-empty source span. Add `not every role in input.roles { true }` and `not (every role in input.roles { true })`; each must report `rego_parse_error`. Run `moon test --deny-warn --target native`; expected: the new parser cases fail because `Every` is not parsed yet.
 
-- [ ] **Step 2: Add the explicit syntax node and parser implementation**
+- [x] **Step 2: Add the explicit syntax node and parser implementation**
 
 Add `Every(String?, String, Expr, Array[Expr], @diagnostic.SourceSpan)` to `syntax.Expr`; include it in `Expr::span` and `Expr::syntax`. In `Parser::parse_unary`, dispatch `TokenKind::Every` to a `parse_every` helper. Parse one identifier, optional comma plus second identifier, required `in`, the domain expression, then require a left brace and reuse `Parser::parse_body`. Build a span from the `every` token through the closing brace. When unary `not` receives a direct `Every` operand (including a parenthesized expression represented as the same AST), report `rego_parse_error` rather than constructing `Unary(Not, Every(...))`.
 
 Keep the existing `Every` lexer token and keyword mapping unchanged. Add a temporary fail-closed `Every` arm to `check_expression` that emits a compile-stage `rego_unsupported_feature` diagnostic and returns false, so the AST change remains exhaustive and cannot silently compile. Add fail-closed evaluator arms: `eval_step` returns no rows and `eval_value` returns `None`. Task 2 Step 3 replaces the temporary compiler diagnostic with scoped safety logic.
 
-- [ ] **Step 3: Add compiler scope tests, run red, and implement local safety**
+- [x] **Step 3: Add compiler scope tests, run red, and implement local safety**
 
-Add to `compile/safety_test.mbt` cases asserting (a) `input.roles` is safe as a domain, (b) an undeclared `roles` domain is unsafe, (c) a body may read a safely assigned outer `account`, (d) a body binder is safe inside its body, and (e) `role` is unsafe in an expression after the `every` expression. Use the OPA v1.21.4 result recorded in Task 1 for a binder whose name matches an outer variable.
+Add to `compile/safety_test.mbt` cases asserting (a) `input.roles` is safe as a domain, (b) an undeclared `roles` domain is unsafe, (c) a body may read a safely assigned outer `account`, (d) a body binder is safe inside its body, and (e) `role` is unsafe in an expression after the `every` expression. Use the OPA v1.21.4 result for a binder matching an outer variable when available; if it remains unavailable, record that comparison as pending and implement the approved design.
 
 Run `moon test --deny-warn --target native`; expected: parser tests pass and the new scope tests fail until `check_expression` handles `Every`.
 
-In `compile/compile.mbt`, for `Every(key_name, value_name, domain, body, _)`, run `check_expression(domain, bound, diagnostics)`. If safe, create `local_bound = bound.copy()`, add the header name(s) to `local_bound` according to the oracle result, check body expressions in order against `local_bound`, and return combined safety without modifying `bound`. For OPA-approved shadowing, local binder lookup must precede outer lookup at evaluation time; do not make the compiler accidentally treat the binder as an outer unification.
+In `compile/compile.mbt`, for `Every(key_name, value_name, domain, body, _)`, run `check_expression(domain, bound, diagnostics)`. If safe, create `local_bound = bound.copy()`, add the header name(s) to `local_bound` according to the approved design, check body expressions in order against `local_bound`, and return combined safety without modifying `bound`. For the approved shadowing behavior, local binder lookup must precede outer lookup at evaluation time; do not make the compiler accidentally treat the binder as an outer unification.
 
-- [ ] **Step 4: Run parser and compiler tests green; commit**
+- [x] **Step 4: Run parser and compiler tests green; commit**
 
 Run `moon fmt --check` then `moon test --deny-warn --target native`. Expected: parser and compiler tests pass; eval tests remain green because the fail-closed evaluator arms do not claim support yet.
 
@@ -263,7 +275,7 @@ git -c user.name=dtzrttp -c user.email=313799694+dtzrttp@users.noreply.github.co
 - Consumes: `Every(key_name, value_name, domain, body, span)`, `Environment::bind_local`, `eval_body`, `EvalContext::charge`.
 - Produces: one `(original_environment, true)` row if every domain item passes; otherwise zero rows. Evaluation never returns header or body bindings to the outer environment.
 
-- [ ] **Step 1: Write array, failure, empty, and undefined-domain tests**
+- [x] **Step 1: Write array, failure, empty, and undefined-domain tests**
 
 Add tests to `eval/expression_test.mbt` for these exact queries and expectations:
 
@@ -285,11 +297,11 @@ assert_true(all_pass.values()[0].equal(@value.Value::boolean(true)))
 
 Add a second array with one `blocked` item and assert zero values and zero diagnostics. Add `every item in [] { item > 0 }` and assert `[true]`. Add empty object and empty set domains and assert `[true]` for each. Add an absent `input.roles` domain and assert zero values and no diagnostic. Run `moon test --deny-warn --target native`; expected: these tests fail because the evaluator's `Every` case is still fail-closed.
 
-- [ ] **Step 2: Implement the evaluator's all-items loop**
+- [x] **Step 2: Implement the evaluator's all-items loop**
 
-Replace the fail-closed `eval_step` arm. Evaluate the domain once in the current environment. For each supported one-variable value, create a local environment with `Environment::bind_local`, charge the shared context for the item, call `eval_body`, and discard the resulting row environments. `bind_local` copies the bindings map and replaces only the local copy's named value; keep existing `Environment::bind` unification behavior unchanged for `some` and assignment. This implements the OPA v1.21.4 shadowing result while preserving the original outer environment. Treat any non-empty body result as success for that item. On the first item with no rows, return no rows. If diagnostics appear, stop and return no rows. If all items pass (including zero items), return exactly `(environment, @value.Value::boolean(true))`. Keep `Every` non-value-producing in `eval_value` by returning `None` there.
+Replace the fail-closed `eval_step` arm. Evaluate the domain once in the current environment. For each supported one-variable value, create a local environment with `Environment::bind_local`, charge the shared context for the item, call `eval_body`, and discard the resulting row environments. `bind_local` copies the bindings map and replaces only the local copy's named value; keep existing `Environment::bind` unification behavior unchanged for `some` and assignment. This implements the approved binder-shadow behavior while preserving the original outer environment; the OPA comparison remains pending. Treat any non-empty body result as success for that item. On the first item with no rows, return no rows. If diagnostics appear, stop and return no rows. If all items pass (including zero items), return exactly `(environment, @value.Value::boolean(true))`. Keep `Every` non-value-producing in `eval_value` by returning `None` there.
 
-- [ ] **Step 3: Run evaluator tests green and commit**
+- [x] **Step 3: Run evaluator tests green and commit**
 
 Run `moon fmt --check` and `moon test --deny-warn --target native`. Expected: array pass/fail, empty domain, undefined domain, and existing evaluator tests pass.
 
@@ -310,7 +322,7 @@ git -c user.name=dtzrttp -c user.email=313799694+dtzrttp@users.noreply.github.co
 - Produces: array index/value iteration; object key/value iteration; single-variable object key iteration; single-variable set value iteration.
 - Produces: `rego_unsupported_feature` for two-variable set iteration and eval-stage `rego_type_error` for a non-collection domain, as specified.
 
-- [ ] **Step 1: Add collection-form tests**
+- [x] **Step 1: Add collection-form tests**
 
 Add cases with expected results:
 
@@ -325,15 +337,15 @@ The first uses an array of two allowed roles and returns true; the second uses a
 
 Run `moon test --deny-warn --target native`; expected: two-variable, object, and set tests fail until the remaining domain arms are implemented.
 
-- [ ] **Step 2: Implement key/value iteration and explicit domain diagnostics**
+- [x] **Step 2: Implement key/value iteration and explicit domain diagnostics**
 
 Extend the item expansion in `eval/expression.mbt`: arrays produce integer index and element; objects produce string key and property value; sets produce member only. For a set with a key binder, push one eval `rego_unsupported_feature` diagnostic at the `every` span and stop. For values outside array/object/set, push an eval diagnostic with code `rego_type_error`, message `every domain must be an array, object, or set`, and the domain span. A missing/undefined domain remains undefined without a type diagnostic. Check `context.diagnostics` after each body and item so strict built-in and budget errors are never mistaken for a successful universal result.
 
-- [ ] **Step 3: Add nested and non-leaking evaluation tests**
+- [x] **Step 3: Add nested and non-leaking evaluation tests**
 
 Add nested `every` over `input.teams` and `team.roles`, where all teams pass, then change one nested role to `blocked` and assert undefined. Add an outer binding before `every`, use a same-named header binder, and verify both the Task 1 OPA oracle result and that the original outer binding is still visible after `every`. Add compile safety assertions that neither a binder nor an assignment created only in the body becomes available to the following expression.
 
-- [ ] **Step 4: Add a policy-level conformance regression and commit**
+- [x] **Step 4: Add a policy-level conformance regression and commit**
 
 In `conformance/runner_test.mbt`, use existing `eval_policy_case(source, query, input)` with:
 
@@ -363,17 +375,17 @@ git -c user.name=dtzrttp -c user.email=313799694+dtzrttp@users.noreply.github.co
 **Interfaces:**
 - Produces: exact passing and one-step-short cases for a fixed one-item query; diagnostics stop evaluation and are retained.
 
-- [ ] **Step 1: Add exact-budget tests**
+- [x] **Step 1: Add exact-budget tests**
 
 Use the fixed query `every x in [1] { x == 1 }`. The expected successful budget is 8 steps: one `eval_step` charge for `every`, one `eval_value` charge for the array literal, one for its number literal, one explicit domain-item charge, then four charges for the body comparison (`eval_step`, `eval_value` on the comparison, and each operand). For two items, the exact total is 14: the shared first four charges plus five per item. Confirm this against the actual `EvalContext::charge` calls when implementing; if the evaluator path charges differently, preserve the boundary-testing intent and record the measured count in the test and oracle notes. Assert `EvalOptions::new(8)` returns `[true]` with no diagnostics and `EvalOptions::new(7)` returns no value and exactly one `rego_eval_step_limit` diagnostic. For `every x in [1, 1] { x == 1 }`, assert 14 steps pass and 13 steps produce one step-limit diagnostic.
 
 Run `moon test --deny-warn --target native`; expected: the seven-step case fails if item charging or body charging is missing, and the eight-step case passes.
 
-- [ ] **Step 2: Verify strict built-in errors propagate through `every`**
+- [x] **Step 2: Verify strict built-in errors propagate through `every`**
 
 Use `every value in ["not-a-number"] { to_number(value) > 0 }` with strict built-in errors enabled via `EvalOptions::new(100).with_strict_builtin_errors(true)`. Assert zero values and one `rego_eval_builtin_error` diagnostic. In default mode, assert the item simply fails with no diagnostic. This proves a diagnostic from the body cannot be swallowed by the universal loop.
 
-- [ ] **Step 3: Run evaluator and conformance tests and commit**
+- [x] **Step 3: Run evaluator and conformance tests and commit**
 
 Run `moon fmt --check` and `moon test --deny-warn --target native`. Expected: exact budget boundary, strict/default error behavior, and all existing tests pass. If the charge count differs because the implementation's measured code path differs, derive and document the count from actual `EvalContext::charge` calls, then set the test to that exact boundary before committing.
 
@@ -397,7 +409,7 @@ git -c user.name=dtzrttp -c user.email=313799694+dtzrttp@users.noreply.github.co
 **Interfaces:**
 - Produces: a local `moonrego eval` example that checks role arrays and an object of principals, with documented allowed, denied, and empty-domain behavior.
 
-- [ ] **Step 1: Add runnable policy and fixture inputs**
+- [x] **Step 1: Add runnable policy and fixture inputs**
 
 Create `examples/every/policy.rego`:
 
@@ -442,7 +454,7 @@ Create `examples/every/input-blocked.json`:
 
 Empty arrays, objects, and sets are covered in unit tests and documented as vacuously passing the respective `every` expression.
 
-- [ ] **Step 2: Run the actual CLI commands and record output**
+- [x] **Step 2: Run the actual CLI commands and record output**
 
 Run the existing command shape from the repository root:
 
@@ -453,11 +465,11 @@ moon run cmd/moonrego --target native -- eval 'data.access.allow' -i examples/ev
 
 Expected: the first JSON response has `"results": [true]`; the second has `"results": [false]` through `default allow := false`. Confirm native CLI usage with `moon run cmd/moonrego --target native -- --help` and record the verified invocation in the README.
 
-- [ ] **Step 3: Update compatibility and README**
+- [x] **Step 3: Update compatibility and README**
 
 Add `every` to the implemented expression/iteration rows of `docs/compatibility.md`, specifying arrays, objects, sets, key/value support, scope, empty-domain behavior, `not every` rejection, and the explicit unsupported/error cases. Replace `every` with its supported subset in the not-implemented list. Add the example commands and expected JSON result fields to `README.md` and `README.mbt.md`; update the implemented-feature list and conformance status in `README.mbt.md`. Record that OPA v1.21.4 is an oracle-only development tool and no OPA source or fixtures were copied in `conformance/README.md`.
 
-- [ ] **Step 4: Run CLI and docs checks and commit**
+- [x] **Step 4: Run CLI and docs checks and commit**
 
 Run both example commands above, `moon fmt --check`, and `moon test --deny-warn --target native`. Expected: example outputs match README and tests pass. Add those same allowed and blocked CLI smoke commands to `.github/workflows/test.yml`; preserve its existing stable-channel installation, `moon version --all` reporting, three-OS matrix, and all-target checks. Validate the workflow file locally by reviewing the final YAML and running the commands exactly as CI will. Remote CI status is pending until GitHub operations are authorized.
 
@@ -513,7 +525,7 @@ Run `git status --short` and `git show --stat --oneline HEAD`; expected: clean w
 - Parser grammar, AST span/syntax, compiler safety, evaluator semantics, collection forms, local scope, errors, shared budget, documentation, example, oracle provenance, and all-target verification each map to a task above.
 - The parser keyword/token already exists; the plan does not duplicate lexer work.
 - A new public AST variant requires exhaustive branches in the compiler and evaluator; Task 2 includes fail-closed evaluator branches before Task 3 replaces them with runtime behavior.
-- The plan does not assume OPA's undocumented binder-shadow or dynamic-domain error behavior; Task 1 records v1.21.4 outputs before implementation.
+- Binder shadowing and dynamic-domain error behavior are covered by first-party tests, but the OPA v1.21.4 comparison remains pending because the executable is unavailable locally.
 - Tests use existing parser, compiler, evaluator, conformance, and CLI entry points. The CLI command order is verified against current `--help` output before documentation is committed.
 - The existing CI already installs the stable toolchain, prints its version, and tests the current target matrix; Task 6 adds the `every` CLI smoke cases. The remote run remains pending and is not claimed as verified.
 - GitHub is out of scope for this plan; all changes and commits remain local.

@@ -75,3 +75,5 @@ jobs:
           moon run cmd/moonrego --target native -- test examples/authz
           moon run cmd/moonrego --target native -- eval 'data.authz.allow' -i examples/authz/input-allowed.json examples/authz
           moon run cmd/moonrego --target native -- eval 'data.config.valid' -i examples/config_check/input-valid.json examples/config_check
+          moon run cmd/moonrego --target native -- eval 'data.access.allow' -i examples/every/input.json --format json examples/every/policy.rego
+          moon run cmd/moonrego --target native -- eval 'data.access.allow' -i examples/every/input-blocked.json --format json examples/every/policy.rego

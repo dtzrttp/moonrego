@@ -15,6 +15,7 @@ Implemented so far:
 - JSON conversion that preserves exact decimal representations;
 - compiler checks for unsafe variables, rule shape conflicts, builtin names/arity, and recursion;
 - bounded query evaluation with backtracking, array index/value and object key/value iteration, references, exact addition/subtraction/multiplication, and core string/type builtins;
+- universal `every` evaluation over arrays, objects, and sets, with local one-variable and supported key/value binders;
 - complete/default/incremental-set rule evaluation with conflict diagnostics;
 - a native CLI for policy checking, query evaluation, and `test_` rules, including directory discovery and JSON/pretty output.
 
@@ -25,10 +26,11 @@ built-ins include `count`, numeric `sum`/`min`/`max` over arrays and sets,
 Two-variable `some-in` over sets and composite binding patterns are reported as
 unsupported. `min` and `max` currently accept numeric collections only. Division,
 additional built-ins and deterministic result normalization remain open work. The
-`conformance/` package currently contains ten first-party semantic regression
-cases. It has not been checked against an installed OPA executable or OPA's
-upstream test corpus. The implementation plan under `docs/superpowers/plans/`
-tracks the exact status.
+`conformance/` package currently contains eleven first-party semantic regression
+cases. Its separate OPA v1.21.4 oracle fixtures have not been executed because
+OPA is not installed locally; no OPA source or upstream test fixtures were
+copied. The implementation plan under `docs/superpowers/plans/` tracks the
+remaining status.
 
 ## Run the example
 
@@ -44,6 +46,10 @@ moon run cmd/moonrego --target native -- eval 'data.authz.admin_roles' \
   -i examples/authz/input-allowed.json --format json examples/authz
 moon run cmd/moonrego --target native -- eval 'data.config.valid' \
   -i examples/config_check/input-valid.json examples/config_check
+moon run cmd/moonrego --target native -- eval 'data.access.allow' \
+  -i examples/every/input.json --format json examples/every/policy.rego
+moon run cmd/moonrego --target native -- eval 'data.access.allow' \
+  -i examples/every/input-blocked.json --format json examples/every/policy.rego
 ```
 
 The example policy returns `true` for the allowed input and `false` for
@@ -53,6 +59,10 @@ report a conflict for any repeated key, including keys associated with equal
 values. The configuration example checks replica count, image, and public
 exposure. Invalid built-in arguments are undefined by default;
 `--strict-builtin-errors` reports them as evaluation diagnostics.
+
+The `every` example returns `[true]` for the allowed fixture and `[false]` for
+the blocked fixture through `default allow := false`. It checks array values
+and object key/value pairs. Empty arrays, objects, and sets satisfy `every`.
 
 ## Local verification
 

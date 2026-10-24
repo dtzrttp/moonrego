@@ -5,6 +5,7 @@ documents were used to understand language behavior and choose examples:
 
 - [Policy Language](https://www.openpolicyagent.org/docs/policy-language)
 - [Policy Reference](https://www.openpolicyagent.org/docs/policy-reference)
+- [`every` keyword and universal quantification](https://www.openpolicyagent.org/docs/policy-language)
 - [Aggregate builtins](https://www.openpolicyagent.org/docs/policy-reference/builtins/aggregates)
 - [Array builtins](https://www.openpolicyagent.org/docs/policy-reference/builtins/array)
 - [Object builtins](https://www.openpolicyagent.org/docs/policy-reference/builtins/object)
@@ -14,10 +15,12 @@ documents were used to understand language behavior and choose examples:
 - [Policy testing](https://www.openpolicyagent.org/docs/policy-testing)
 
 No OPA source code, upstream test cases, or third-party policy samples are
-included. The ten conformance cases are written in this repository and are
-based on documented semantics. The authorization/configuration policies and
-JSON inputs under `examples/` are original project content. No local OPA oracle
-run or OPA version is claimed.
+included. The eleven conformance cases and the policies and input data under
+`conformance/opa/` are first-party examples based on documented semantics. The
+OPA v1.21.4 release is the intended one-time semantic oracle; its executable is
+not installed locally and the oracle cases have not been run. The
+authorization/configuration policies and JSON inputs under `examples/` are
+original project content.
 
 ## Runtime dependencies
 

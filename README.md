@@ -11,6 +11,7 @@ the [compatibility guide](docs/compatibility.md).
 - Source-located lexer, parser, compiler, and evaluation diagnostics.
 - Exact finite decimal values and JSON conversion.
 - Array, set, and object comprehensions with scoped iteration and filtering.
+- Universal `every` iteration over arrays, objects, and sets, with scoped binders.
 - Complete, default, and incremental set rules with bounded evaluation.
 - Policy checks, `test_` rules, and JSON or human-readable CLI output.
 - A shared core that checks on native, WebAssembly, WebAssembly GC, and
@@ -23,6 +24,10 @@ moon run cmd/moonrego --target native -- check examples/authz
 moon run cmd/moonrego --target native -- test examples/authz
 moon run cmd/moonrego --target native -- eval 'data.authz.allow' \
   -i examples/authz/input-allowed.json --format json examples/authz
+moon run cmd/moonrego --target native -- eval 'data.access.allow' \
+  -i examples/every/input.json --format json examples/every/policy.rego
+moon run cmd/moonrego --target native -- eval 'data.access.allow' \
+  -i examples/every/input-blocked.json --format json examples/every/policy.rego
 ```
 
 The first command validates the policy, the second runs its `test_` rules, and
@@ -30,6 +35,11 @@ the last evaluates the allowed authorization input. The policy also exposes
 `data.authz.matched_roles` as a set and `data.authz.role_labels` as an object,
 both built by comprehensions over the input roles. More examples and the
 complete local verification commands are in [README.mbt.md](README.mbt.md).
+
+The `every` example checks each role and each principal's key and roles. The
+allowed input returns `{"results":[true]}`; the blocked input returns
+`{"results":[false]}` through the policy's default rule. Empty arrays,
+objects, and sets satisfy their `every` expression vacuously.
 
 ## Development
 

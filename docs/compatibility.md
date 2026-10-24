@@ -11,8 +11,8 @@ translated into different semantics.
 | --- | --- |
 | Modules | `package`, `import data...` and aliases |
 | Rules | Constant, `default`, complete boolean/value rules with `if`, and `contains` set rules |
-| Expressions | JSON literals, arrays, string-key objects, sets, array, set, and object comprehensions, references, assignment, comparisons, `in`, `not`, and exact `+`, `-`, `*` |
-| Iteration | `some value in collection`; `some key, value in collection` for arrays and objects |
+| Expressions | JSON literals, arrays, string-key objects, sets, array, set, and object comprehensions, references, assignment, comparisons, `in`, `not`, `every`, and exact `+`, `-`, `*` |
+| Iteration | `some value in collection`; `some key, value in collection` for arrays and objects; `every value in collection`; `every key, value in collection` for arrays and objects |
 | Compiler | Unsafe-variable checks, builtin name/arity checks, rule-shape/default conflicts, and recursion checks |
 | Evaluation | `input`/`data`, backtracking, complete/default/set rules, conflict diagnostics, and a maximum step count |
 | Builtins | `count`; `is_null`, `is_boolean`, `is_number`, `is_string`, `is_array`, `is_object`, `is_set`; `to_number`; `upper`, `lower`, `contains`, `startswith`, `endswith`; numeric `sum`, `min`, `max`; `array.concat`; `object.get`; `object.keys` |
@@ -32,16 +32,25 @@ strings; any repeated key produces a diagnostic, even when the associated
 values are equal. Body iteration and value comparisons used to remove duplicate
 set results use the shared evaluation step budget.
 
+`every` supports arrays, objects, and sets. Its one-variable form binds array
+elements, object keys, and set members; its two-variable form binds array
+indices and elements or object keys and values. Its header and body variables
+are local to the expression, and an empty collection passes vacuously. A
+missing domain is undefined. A defined non-collection domain reports
+`rego_type_error`; two-variable iteration over sets reports
+`rego_unsupported_feature`. `not every` is rejected during parsing.
+
 ## Not implemented
 
 - Rego v0 compatibility syntax;
-- division, remainder, user functions, `every`, `else`, or `with`;
+- division, remainder, user functions, `else`, or `with`;
 - two-variable `some-in` over sets and composite binding patterns;
 - most OPA builtins, including generic `sort`, `product`, and non-numeric `min`/`max`;
 - result-count, output-byte, and recursion-depth budgets;
 - complete deterministic result normalization, tracing, coverage, bundles, or OPA services.
 
-The current conformance package has ten first-party semantic regression cases.
-OPA is not installed in the development environment, and no upstream OPA test
-fixtures have been copied or run as an oracle. See `conformance/README.md` and
-the root `NOTICE.md` for test and source provenance.
+The current conformance package has eleven first-party semantic regression
+cases. OPA v1.21.4 is documented as an oracle, but OPA is not installed in the
+development environment and the oracle commands have not been run. No upstream
+OPA test fixtures have been copied. See `conformance/README.md`,
+`conformance/opa/README.md`, and the root `NOTICE.md` for provenance and status.

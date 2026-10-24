@@ -1,0 +1,7 @@
+{
+  "roles": ["admin", "viewer"],
+  "principals": {
+    "team-a": {"roles": ["staff"]},
+    "team-b": {"roles": ["staff", "reviewer"]}
+  }
+}
