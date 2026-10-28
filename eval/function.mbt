@@ -8,8 +8,18 @@ fn eval_user_function(
   context : EvalContext,
 ) -> @value.Value? {
   let results : Array[@value.Value] = []
+  let mut fallback : (@syntax.Expr, Environment)? = None
   for rule in program.rules_for(package_name, name) {
     match rule.kind() {
+      @syntax.RuleKind::DefaultFunction(parameters, value) =>
+        if parameters.length() == arguments.length() {
+          let environment = match
+            program.module_for_rule(package_name, name, rule.span.filename) {
+            Some(policy_module) => Environment::for_module(policy_module)
+            None => Environment::for_package(package_name)
+          }
+          fallback = Some((value, environment))
+        }
       @syntax.RuleKind::Function(parameters, head) =>
         if parameters.length() == arguments.length() {
           let mut environment = match
@@ -47,7 +57,11 @@ fn eval_user_function(
     }
   }
   if results.length() == 0 {
-    None
+    match fallback {
+      Some((expression, environment)) =>
+        eval_value(expression, environment, context)
+      None => None
+    }
   } else {
     let first = results[0]
     if results.all(fn(value) { value.equal(first) }) {

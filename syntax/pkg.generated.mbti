@@ -101,6 +101,7 @@ pub(all) enum RuleKind {
   IncrementalSet(Expr)
   OrderedComplete(Array[RuleBranch])
   Function(Array[String], Expr?)
+  DefaultFunction(Array[String], Expr)
 }
 
 pub(all) enum Term {

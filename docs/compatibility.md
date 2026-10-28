@@ -13,7 +13,7 @@ translated into different semantics.
 | --- | --- |
 | Modules | `package`, `import data...` and aliases |
 | Rules | Constant, `default`, complete boolean/value rules with `if`, ordered complete-rule `else` chains with conditional or unconditional value branches, and `contains` set rules |
-| Functions | Same-package calls to functions with named parameters, including multiple definitions, local bindings, conflict detection and shared step budget |
+| Functions | Same-package calls to functions with named parameters, including multiple definitions, local bindings, conflict detection and shared step budget; default functions with literal values |
 | Expressions | JSON literals, arrays, string-key objects, sets, array, set, and object comprehensions, references, assignment, comparisons, `in`, `not`, `every`, and exact `+`, `-`, `*` |
 | Iteration | `some value in collection`; `some key, value in collection` for arrays and objects; `every value in collection`; `every key, value in collection` for arrays and objects |
 | Compiler | Unsafe-variable checks, builtin name/arity checks, rule-shape/default conflicts, and recursion checks |
@@ -51,7 +51,7 @@ pending.
 ## Not implemented
 
 - Rego v0 compatibility syntax;
-- division, remainder, `with`, function-associated `else`, default functions,
+- division, remainder, `with`, function-associated `else`, default function comprehension values,
   qualified/imported function calls, and function argument patterns;
 - two-variable `some-in` over sets and composite binding patterns;
 - most OPA builtins, including generic `sort`, `product`, and non-numeric `min`/`max`;

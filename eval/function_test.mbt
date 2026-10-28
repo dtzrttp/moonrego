@@ -1,4 +1,75 @@
 ///|
+test "standalone default function supports composite literal fallback" {
+  let parsed = @parser.parse_module(
+    "package p\ndefault options(_, _) := {\"enabled\": true}\nresult := options(1, 2)",
+    "default-only.rego",
+  )
+  assert_eq(parsed.diagnostics().length(), 0)
+  let checked = @compile.compile_modules([parsed.policy().unwrap()])
+  assert_eq(checked.diagnostics().length(), 0)
+  let result = @eval.eval_program_query(
+    checked.program().unwrap(),
+    "data.p.result",
+    @value.Value::null(),
+    @value.Value::null(),
+    @eval.EvalOptions::new(1000),
+  )
+  assert_eq(result.diagnostics().length(), 0)
+  assert_eq(result.values().length(), 1)
+  assert_true(
+    result.values()[0].equal(
+      @value.Value::Object({ "enabled": @value.Value::boolean(true) }),
+    ),
+  )
+}
+
+///|
+test "default function falls back only for defined arguments" {
+  let parsed = @parser.parse_module(
+    "package p\ndefault clamp(_) := 0\nclamp(x) := x if { x > 0 }\na := clamp(3)\nb := clamp(-3)\nc := clamp(input.missing)",
+    "default-function.rego",
+  )
+  assert_eq(parsed.diagnostics().length(), 0)
+  let checked = @compile.compile_modules([parsed.policy().unwrap()])
+  assert_eq(checked.diagnostics().length(), 0)
+  let program = checked.program().unwrap()
+  let a = @eval.eval_program_query(
+    program,
+    "data.p.a",
+    @value.Value::null(),
+    @value.Value::null(),
+    @eval.EvalOptions::new(1000),
+  )
+  let b = @eval.eval_program_query(
+    program,
+    "data.p.b",
+    @value.Value::null(),
+    @value.Value::null(),
+    @eval.EvalOptions::new(1000),
+  )
+  let c = @eval.eval_program_query(
+    program,
+    "data.p.c",
+    @value.Value::null(),
+    @value.Value::null(),
+    @eval.EvalOptions::new(1000),
+  )
+  assert_eq(a.values().length(), 1)
+  assert_true(
+    a.values()[0].equal(
+      @value.Value::number(@value.Number::parse("3").unwrap()),
+    ),
+  )
+  assert_eq(b.values().length(), 1)
+  assert_true(
+    b.values()[0].equal(
+      @value.Value::number(@value.Number::parse("0").unwrap()),
+    ),
+  )
+  assert_eq(c.values().length(), 0)
+}
+
+///|
 test "multiple user function definitions must agree" {
   let parsed = @parser.parse_module(
     (

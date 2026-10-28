@@ -473,7 +473,8 @@ fn eval_value(
         (Some(program), Some(package_name)) => {
           let definitions = program.rules_for(package_name, name)
           if definitions.any(fn(rule) {
-              rule.kind() is @syntax.RuleKind::Function(_, _)
+              rule.kind() is @syntax.RuleKind::Function(_, _) ||
+              rule.kind() is @syntax.RuleKind::DefaultFunction(_, _)
             }) {
             return eval_user_function(
               program, package_name, name, values, span, context,

@@ -155,8 +155,12 @@ fn Parser::parse_rule(self : Parser) -> @syntax.Rule? {
         is Some(parameter) else {
         return None
       }
-      if parameter == "_" {
+      if parameter == "_" && !is_default {
         self.error("wildcard function parameters are not yet supported")
+        return None
+      }
+      if is_default && parameter != "_" && names.contains(parameter) {
+        self.error("default function parameter names must be unique")
         return None
       }
       names.push(parameter)
@@ -231,6 +235,8 @@ fn Parser::parse_rule(self : Parser) -> @syntax.Rule? {
       match base_kind {
         @syntax.RuleKind::Complete(value) =>
           @syntax.RuleKind::Function(names, value)
+        @syntax.RuleKind::Default(value) =>
+          @syntax.RuleKind::DefaultFunction(names, value)
         _ => {
           self.error("only complete function definitions are supported")
           return None

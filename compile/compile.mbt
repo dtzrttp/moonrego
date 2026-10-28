@@ -87,6 +87,27 @@ pub fn compile_source(
 }
 
 ///|
+fn default_function_literal(expression : @syntax.Expr) -> Bool {
+  match expression {
+    @syntax.Expr::Term(@syntax.Term::Null, _)
+    | @syntax.Expr::Term(@syntax.Term::Bool(_), _)
+    | @syntax.Expr::Term(@syntax.Term::Number(_), _)
+    | @syntax.Expr::Term(@syntax.Term::String(_), _) => true
+    @syntax.Expr::Term(@syntax.Term::Array(items), _)
+    | @syntax.Expr::Term(@syntax.Term::Set(items), _) =>
+      items.all(default_function_literal)
+    @syntax.Expr::Term(@syntax.Term::Object(items), _) =>
+      items.all(fn(item) { default_function_literal(item.1) })
+    @syntax.Expr::Unary(@syntax.UnaryOp::Negate, inner, _) =>
+      match inner {
+        @syntax.Expr::Term(@syntax.Term::Number(_), _) => true
+        _ => false
+      }
+    _ => false
+  }
+}
+
+///|
 /// Check parsed modules and build a rule index for later evaluation.
 pub fn compile_modules(modules : Array[@syntax.PolicyModule]) -> CompileResult {
   let diagnostics : Array[@diagnostic.Diagnostic] = []
@@ -95,9 +116,15 @@ pub fn compile_modules(modules : Array[@syntax.PolicyModule]) -> CompileResult {
   let function_keys : Array[String] = []
   for policy_module in modules {
     for rule in policy_module.rules() {
-      if rule.kind() is @syntax.RuleKind::Function(parameters, _) {
+      let parameter_count = match rule.kind() {
+        @syntax.RuleKind::Function(parameters, _)
+        | @syntax.RuleKind::DefaultFunction(parameters, _) =>
+          Some(parameters.length())
+        _ => None
+      }
+      if parameter_count is Some(arity) {
         let package_name = policy_module.package_name()
-        signatures.push((package_name, rule.name(), parameters.length()))
+        signatures.push((package_name, rule.name(), arity))
         let key = package_name + "." + rule.name()
         if !function_keys.contains(key) {
           function_keys.push(key)
@@ -115,8 +142,10 @@ pub fn compile_modules(modules : Array[@syntax.PolicyModule]) -> CompileResult {
     for rule in policy_module.rules() {
       let key = "\{policy_module.package_name()}.\{rule.name()}"
       let shape = rule.shape()
-      let is_default = rule.kind() is @syntax.RuleKind::Default(_)
-      let is_function = rule.kind() is @syntax.RuleKind::Function(_, _)
+      let is_default = rule.kind() is @syntax.RuleKind::Default(_) ||
+        rule.kind() is @syntax.RuleKind::DefaultFunction(_, _)
+      let is_function = rule.kind() is @syntax.RuleKind::Function(_, _) ||
+        rule.kind() is @syntax.RuleKind::DefaultFunction(_, _)
       for
         (
           previous_key,
@@ -126,11 +155,17 @@ pub fn compile_modules(modules : Array[@syntax.PolicyModule]) -> CompileResult {
           previous_span,
         ) in rule_shapes {
         let duplicate_default = is_default && previous_default
-        let conflicting_shape = !is_default &&
-          !previous_default &&
+        let conflicting_shape = if is_function && previous_function {
           shape != previous_shape
-        let function_default_conflict = (is_default && previous_function) ||
-          (is_function && previous_default)
+        } else {
+          !is_default && !previous_default && shape != previous_shape
+        }
+        let function_default_conflict = (
+            is_default && previous_function && !is_function
+          ) ||
+          (is_function && previous_default && !previous_function) ||
+          (is_default && is_function && !previous_function) ||
+          (previous_default && previous_function && !is_function)
         if key == previous_key &&
           (conflicting_shape || duplicate_default || function_default_conflict) {
           let message = if duplicate_default {
@@ -149,7 +184,7 @@ pub fn compile_modules(modules : Array[@syntax.PolicyModule]) -> CompileResult {
         }
       }
       rule_shapes.push((key, shape, is_default, is_function, rule.span))
-      if rule.kind() is @syntax.RuleKind::Function(_, _) {
+      if is_function {
         if builtin_arity(rule.name()) is Some(_) {
           diagnostics.push(
             @diagnostic.Diagnostic::error(
@@ -157,6 +192,18 @@ pub fn compile_modules(modules : Array[@syntax.PolicyModule]) -> CompileResult {
               "rego_unsupported_feature",
               "user functions cannot shadow built-ins in this implementation",
               rule.span,
+            ),
+          )
+        }
+      }
+      if rule.kind() is @syntax.RuleKind::DefaultFunction(_, value) {
+        if !default_function_literal(value) {
+          diagnostics.push(
+            @diagnostic.Diagnostic::error(
+              @diagnostic.Stage::Compile,
+              "rego_unsupported_feature",
+              "default function values currently require a literal",
+              value.span(),
             ),
           )
         }
@@ -191,6 +238,7 @@ pub fn compile_modules(modules : Array[@syntax.PolicyModule]) -> CompileResult {
       }
       match rule.kind() {
         @syntax.RuleKind::Default(value)
+        | @syntax.RuleKind::DefaultFunction(_, value)
         | @syntax.RuleKind::Complete(Some(value))
         | @syntax.RuleKind::IncrementalSet(value)
         | @syntax.RuleKind::Function(_, Some(value)) => {
@@ -641,6 +689,8 @@ fn check_rule(
   match rule.kind() {
     @syntax.RuleKind::Default(value) =>
       check_expression(value, bound, diagnostics, functions) |> ignore
+    @syntax.RuleKind::DefaultFunction(_, value) =>
+      check_expression(value, [], diagnostics, functions) |> ignore
     @syntax.RuleKind::Complete(Some(value))
     | @syntax.RuleKind::IncrementalSet(value)
     | @syntax.RuleKind::Function(_, Some(value)) =>

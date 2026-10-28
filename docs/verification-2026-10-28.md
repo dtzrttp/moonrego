@@ -1,5 +1,15 @@
 # Local verification: full-language target, ordered rules and functions
 
+## Subsequent default-function increment
+
+After the snapshot below, same-package default functions with literal fallback
+values were added. Tests first exposed the unsupported syntax and the lack of
+default-value checking. `moon fmt --check`, `moon check --deny-warn --target
+all`, `moon build --deny-warn --target all`, and `moon info` passed. `moon test
+--deny-warn --target all` passed wasm 166/166, wasm-gc 166/166, JS 166/166,
+and native 169/169. The generated syntax interface adds DefaultFunction.
+Default comprehensions remain unsupported and OPA parity remains unverified.
+
 Date: 2026-10-28. Branch: codex/rego-every. The full Rego v1 endpoint in
 rego-v1-roadmap.md is a goal and is not complete.
 

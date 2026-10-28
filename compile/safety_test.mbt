@@ -227,6 +227,26 @@ test "object comprehension key and value use local bindings" {
 }
 
 ///|
+test "default function definitions enforce arity and uniqueness" {
+  let arity = @compile.compile_source(
+    "package p\ndefault f(_) := 0\nf(x, y) := x", "default-arity.rego",
+  )
+  let duplicate = @compile.compile_source(
+    "package p\ndefault f(_) := 0\ndefault f(_) := 1", "default-duplicate.rego",
+  )
+  let repeated = @compile.compile_source(
+    "package p\ndefault f(x, x) := 0", "default-parameters.rego",
+  )
+  let refvalue = @compile.compile_source(
+    "package p\ndefault f(_) := input.x", "default-reference.rego",
+  )
+  assert_true(arity.length() > 0)
+  assert_true(duplicate.length() > 0)
+  assert_true(repeated.length() > 0)
+  assert_true(refvalue.length() > 0)
+}
+
+///|
 test "rejects multiple default definitions for one rule" {
   let diagnostics = @compile.compile_source(
     "package p\ndefault allow := false\ndefault allow := true", "defaults.rego",

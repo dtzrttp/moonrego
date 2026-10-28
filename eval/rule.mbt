@@ -53,7 +53,8 @@ fn eval_rule(
             break
           }
         }
-      @syntax.RuleKind::Function(_, _) => ()
+      @syntax.RuleKind::Function(_, _)
+      | @syntax.RuleKind::DefaultFunction(_, _) => ()
       @syntax.RuleKind::IncrementalSet(head_value) => {
         is_incremental_set = true
         let rows = eval_body(rule.body(), environment, context)
