@@ -1,5 +1,10 @@
 # Rego `every` Implementation Plan
 
+> Historical plan: its single-variable object-key assumption was corrected on
+> 2026-10-28. Its old source-file split also counted two white-box test files
+> as production files. See docs/compatibility.md and the 2026-10-28
+> verification record for current behavior and a corrected classification.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `subagent-driven-development` or `executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add the reviewed Rego v1 `every` universal quantifier to MoonReGo with correct parsing, compiler scoping, evaluation, diagnostics, tests, and examples.

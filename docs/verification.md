@@ -1,5 +1,8 @@
 # `every` local verification record
 
+> Historical 2026-10-24 record. Single-variable object iteration semantics
+> were corrected on 2026-10-28; see docs/compatibility.md for current behavior.
+
 Date: 2026-10-24
 Branch: `codex/rego-every`
 Scope: local checkout only. No GitHub repository, account, or remote CI was

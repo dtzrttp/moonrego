@@ -1,7 +1,9 @@
 # Rego v1 compatibility
 
-MoonRego is a deliberately limited Rego v1 implementation. It does not claim
-full Open Policy Agent compatibility. Unsupported constructs should produce a
+MoonRego targets complete Rego v1 language semantics, but its current
+implementation is incomplete and does not claim full Open Policy Agent
+compatibility. The [roadmap](rego-v1-roadmap.md) defines the endpoint and
+required evidence. Unsupported constructs should produce a
 diagnostic or an undefined result as described below; they are not silently
 translated into different semantics.
 
@@ -10,7 +12,7 @@ translated into different semantics.
 | Area | Supported behavior |
 | --- | --- |
 | Modules | `package`, `import data...` and aliases |
-| Rules | Constant, `default`, complete boolean/value rules with `if`, and `contains` set rules |
+| Rules | Constant, `default`, complete boolean/value rules with `if`, ordered complete-rule `else` chains with conditional or unconditional value branches, and `contains` set rules |
 | Expressions | JSON literals, arrays, string-key objects, sets, array, set, and object comprehensions, references, assignment, comparisons, `in`, `not`, `every`, and exact `+`, `-`, `*` |
 | Iteration | `some value in collection`; `some key, value in collection` for arrays and objects; `every value in collection`; `every key, value in collection` for arrays and objects |
 | Compiler | Unsafe-variable checks, builtin name/arity checks, rule-shape/default conflicts, and recursion checks |
@@ -33,7 +35,8 @@ values are equal. Body iteration and value comparisons used to remove duplicate
 set results use the shared evaluation step budget.
 
 `every` requires a nonempty braced body and supports arrays, objects, and sets.
-Its one-variable form binds array elements, object keys, and set members; its
+Both single-variable `some-in` and `every` bind object values.
+The one-variable `every` form binds array elements, object values, and set members; its
 two-variable form binds array indices and elements or object keys and values.
 Its header and body variables are local to the expression, and an empty
 collection passes vacuously. A missing domain is undefined. A defined
@@ -47,14 +50,14 @@ pending.
 ## Not implemented
 
 - Rego v0 compatibility syntax;
-- division, remainder, user functions, `else`, or `with`;
+- division, remainder, user functions, function-associated `else`, or `with`;
 - two-variable `some-in` over sets and composite binding patterns;
 - most OPA builtins, including generic `sort`, `product`, and non-numeric `min`/`max`;
 - result-count, output-byte, and recursion-depth budgets;
 - complete deterministic result normalization, tracing, coverage, bundles, or OPA services.
 
-The current conformance package has eleven first-party semantic regression
-cases. OPA v1.21.4 is documented as an oracle, but OPA is not installed in the
+The current conformance package has first-party semantic regression cases.
+OPA v1.21.4 is documented as an oracle, but OPA is not installed in the
 development environment and the oracle commands have not been run. No upstream
 OPA test fixtures have been copied. See `conformance/README.md`,
 `conformance/opa/README.md`, and the root `NOTICE.md` for provenance and status.

@@ -1,10 +1,12 @@
 # MoonRego
 
-MoonRego is an original MoonBit implementation of a documented, deliberately
-limited Rego v1 subset. It parses, checks, and evaluates JSON policies without
-embedding or calling an Open Policy Agent (OPA) service. It does not claim full
-OPA compatibility; supported and unsupported language features are listed in
-the [compatibility guide](docs/compatibility.md).
+MoonRego aims to implement complete Rego v1 language semantics in MoonBit,
+using a pinned Open Policy Agent (OPA) version as its compatibility reference.
+The implementation is currently incomplete: it parses, checks, and evaluates
+a documented subset without embedding or calling an OPA service. The
+[compatibility guide](docs/compatibility.md) lists current support, and the
+[full-language roadmap](docs/rego-v1-roadmap.md) defines remaining work and
+evidence required before claiming full compatibility.
 
 ## Features
 
@@ -13,6 +15,7 @@ the [compatibility guide](docs/compatibility.md).
 - Array, set, and object comprehensions with scoped iteration and filtering.
 - Universal `every` iteration over arrays, objects, and sets, with scoped binders.
 - Complete, default, and incremental set rules with bounded evaluation.
+- Ordered complete-rule `else` chains with conditional and unconditional value branches.
 - Policy checks, `test_` rules, and JSON or human-readable CLI output.
 - A shared core that checks on native, WebAssembly, WebAssembly GC, and
   JavaScript targets; the file-based CLI currently targets native.

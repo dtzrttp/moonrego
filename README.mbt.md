@@ -1,8 +1,9 @@
 # MoonRego
 
-MoonRego is a pure MoonBit implementation of a documented Rego v1 subset.
-It is currently under local development for the October 2026 MoonBit
-Hackathon.
+MoonRego aims to implement complete Rego v1 language semantics in MoonBit,
+against a pinned OPA reference. The current implementation covers only a
+documented subset. See [the full-language roadmap](docs/rego-v1-roadmap.md)
+for remaining work and compatibility acceptance criteria.
 
 Implemented so far:
 
@@ -17,17 +18,18 @@ Implemented so far:
 - bounded query evaluation with backtracking, array index/value and object key/value iteration, references, exact addition/subtraction/multiplication, and core string/type builtins;
 - universal `every` evaluation over arrays, objects, and sets, with local one-variable and supported key/value binders;
 - complete/default/incremental-set rule evaluation with conflict diagnostics;
+- ordered complete-rule `else` chains with conditional and unconditional value branches;
 - a native CLI for policy checking, query evaluation, and `test_` rules, including directory discovery and JSON/pretty output.
 
-This is an explicitly limited Rego v1 subset under active development. Implemented
+The current implementation is an incomplete Rego v1 subset. Implemented
 built-ins include `count`, numeric `sum`/`min`/`max` over arrays and sets,
 `array.concat`, `object.get`, `object.keys`, the `is_*` type predicates,
 `to_number`, `upper`, `lower`, `contains`, `startswith`, and `endswith`.
 Two-variable `some-in` over sets and composite binding patterns are reported as
 unsupported. `min` and `max` currently accept numeric collections only. Division,
 additional built-ins and deterministic result normalization remain open work. The
-`conformance/` package currently contains eleven first-party semantic regression
-cases. Its separate OPA v1.21.4 oracle fixtures have not been executed because
+`conformance/` package contains first-party semantic regression cases.
+Its separate OPA v1.21.4 oracle fixtures have not been executed because
 OPA is not installed locally; no OPA source or upstream test fixtures were
 copied. The implementation plan under `docs/superpowers/plans/` tracks the
 remaining status.

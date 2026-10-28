@@ -1,6 +1,7 @@
 # Architecture
 
-MoonRego is a pure MoonBit implementation of a documented Rego v1 subset. Its
+MoonRego aims to implement complete Rego v1 language semantics. Its present
+MoonBit implementation is incomplete and covers the documented subset. The
 library packages are usable on native, wasm-gc, wasm, and JavaScript targets.
 The file-based CLI is a separate native-only adapter.
 
@@ -44,7 +45,9 @@ step budget.
 
 Complete rules collect successful values and report a conflict when definitions
 produce unequal values. A default is used only when the complete rule has no
-value. `contains` rules collect distinct values as a Rego set. Compilation
+value. An ordered complete-rule `else` chain evaluates each branch in its
+own local scope until a branch produces a defined value. `contains` rules
+collect distinct values as a Rego set. Compilation
 rejects unsafe variables, invalid builtin names or arities, rule shape conflicts,
 duplicate defaults, and recursive rule dependencies.
 

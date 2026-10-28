@@ -1,5 +1,8 @@
 # Rego `every` 语义支持设计
 
+> 历史设计说明：文中单变量对象迭代绑定键的假设已于 2026-10-28
+> 更正为绑定值。当前行为见 docs/compatibility.md 和 OPA 语言文档。
+
 状态：设计已获用户批准（2026-10-24）；实施计划见 `docs/superpowers/plans/2026-10-24-rego-every.md`
 
 日期：2026-10-24
