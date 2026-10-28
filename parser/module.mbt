@@ -142,7 +142,40 @@ fn Parser::parse_rule(self : Parser) -> @syntax.Rule? {
   guard self.take_identifier("expected rule name") is Some(name) else {
     return None
   }
-  let (kind, body) : (@syntax.RuleKind, Array[@syntax.Expr]) = if is_default {
+  let parameters : Array[String]? = if self.current().kind()
+    is @syntax.TokenKind::LeftParen {
+    self.advance() |> ignore
+    let names : Array[String] = []
+    if self.current().kind() is @syntax.TokenKind::RightParen {
+      self.error("expected at least one named function parameter")
+      return None
+    }
+    for ;; {
+      guard self.take_identifier("expected named function parameter")
+        is Some(parameter) else {
+        return None
+      }
+      if parameter == "_" {
+        self.error("wildcard function parameters are not yet supported")
+        return None
+      }
+      names.push(parameter)
+      if self.current().kind() is @syntax.TokenKind::Comma {
+        self.advance() |> ignore
+        continue
+      }
+      break
+    }
+    if !(self.current().kind() is @syntax.TokenKind::RightParen) {
+      self.error("expected ')' after function parameters")
+      return None
+    }
+    self.advance() |> ignore
+    Some(names)
+  } else {
+    None
+  }
+  let (base_kind, body) : (@syntax.RuleKind, Array[@syntax.Expr]) = if is_default {
     if !(self.current().kind() is @syntax.TokenKind::Assign) {
       self.error("expected ':=' after default rule name")
       return None
@@ -192,6 +225,18 @@ fn Parser::parse_rule(self : Parser) -> @syntax.Rule? {
         return None
       }
     }
+  }
+  let kind = match parameters {
+    Some(names) =>
+      match base_kind {
+        @syntax.RuleKind::Complete(value) =>
+          @syntax.RuleKind::Function(names, value)
+        _ => {
+          self.error("only complete function definitions are supported")
+          return None
+        }
+      }
+    None => base_kind
   }
   let end = if self.index > 0 {
     self.tokens[self.index - 1].span()

@@ -51,6 +51,7 @@ pub(all) enum RuleKind {
   Complete(Expr?)
   IncrementalSet(Expr)
   OrderedComplete(Array[RuleBranch])
+  Function(Array[String], Expr?)
 }
 
 ///|
@@ -92,6 +93,7 @@ pub fn Rule::shape(self : Rule) -> String {
     Default(_) => "default:\{self.name}"
     Complete(_) | OrderedComplete(_) => "complete:\{self.name}"
     IncrementalSet(_) => "contains:\{self.name}"
+    Function(parameters, _) => "function:\{self.name}/\{parameters.length()}"
   }
 }
 

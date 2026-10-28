@@ -469,6 +469,19 @@ fn eval_value(
         }
         values.push(value)
       }
+      match (context.program, environment.package_name) {
+        (Some(program), Some(package_name)) => {
+          let definitions = program.rules_for(package_name, name)
+          if definitions.any(fn(rule) {
+              rule.kind() is @syntax.RuleKind::Function(_, _)
+            }) {
+            return eval_user_function(
+              program, package_name, name, values, span, context,
+            )
+          }
+        }
+        _ => ()
+      }
       let result = eval_builtin(name, values)
       if result is None && context.strict_builtin_errors {
         context.builtin_error(name, span)
@@ -573,7 +586,11 @@ fn eval_term(
     @syntax.Term::Number(text) =>
       @value.Number::parse(text).map(@value.Value::number)
     @syntax.Term::String(text) => Some(@value.Value::string(text))
-    @syntax.Term::Variable(name) => environment.get(name)
+    @syntax.Term::Variable(name) =>
+      match environment.get(name) {
+        Some(value) => Some(value)
+        None => resolve_import(name, environment, context)
+      }
     @syntax.Term::Root(@syntax.RootDocument::Input) => Some(context.input)
     @syntax.Term::Root(@syntax.RootDocument::Data) => Some(context.data)
     @syntax.Term::Array(items) => {

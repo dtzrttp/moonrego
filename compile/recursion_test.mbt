@@ -66,3 +66,33 @@ test "detects recursion in an unconditional else head" {
     }),
   )
 }
+
+///|
+test "rejects mutually recursive same-package user functions" {
+  let diagnostics = @compile.compile_source(
+    "package p\nf(x) := g(x)\ng(x) := f(x)", "function-recursion.rego",
+  )
+  assert_true(
+    diagnostics.any(fn(diagnostic) {
+      diagnostic.code() == "rego_recursion_error"
+    }),
+  )
+}
+
+///|
+test "function parameters shadow imports during recursion analysis" {
+  let first = @parser.parse_module(
+    "package p\nimport data.p.result as x\nf(x) := x", "a.rego",
+  ).policy()
+  let second = @parser.parse_module("package p\nresult := f(1)", "b.rego").policy()
+  let modules = match (first, second) {
+    (Some(left), Some(right)) => [left, right]
+    _ => abort("test modules should parse")
+  }
+  let result = @compile.compile_modules(modules)
+  assert_false(
+    result
+    .diagnostics()
+    .any(fn(diagnostic) { diagnostic.code() == "rego_recursion_error" }),
+  )
+}

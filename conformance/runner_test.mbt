@@ -162,6 +162,72 @@ test "ordered rules support an unconditional else value" {
 }
 
 ///|
+test "same-package user functions return values" {
+  let source =
+    #|package calc
+    #|double(x) := x * 2
+    #|result := double(3)
+  let result = eval_policy_case(
+    source,
+    "data.calc.result",
+    @value.Value::null(),
+  )
+  expect_values(result, [
+    @value.Value::number(@value.Number::parse("6").unwrap()),
+  ])
+}
+
+///|
+test "nested user function calls do not change caller bindings" {
+  let source =
+    #|package calc
+    #|inc(x) := x + 1
+    #|double(x) := x * 2
+    #|result := y if { x := 9; y := double(inc(2)); x == 9 }
+  let result = eval_policy_case(
+    source,
+    "data.calc.result",
+    @value.Value::null(),
+  )
+  expect_values(result, [
+    @value.Value::number(@value.Number::parse("6").unwrap()),
+  ])
+}
+
+///|
+test "ordered rule branches can call same-package user functions" {
+  let source =
+    #|package p
+    #|increment(x) := x + 1
+    #|result := increment(1) if { false } else := increment(2)
+  let result = eval_policy_case(source, "data.p.result", @value.Value::null())
+  expect_values(result, [
+    @value.Value::number(@value.Number::parse("3").unwrap()),
+  ])
+}
+
+///|
+test "user functions return undefined for undefined arguments and false bodies" {
+  let source =
+    #|package calc
+    #|positive(x) if { x > 0 }
+    #|missing := positive(input.missing)
+    #|negative := positive(-1)
+  let missing = eval_policy_case(
+    source,
+    "data.calc.missing",
+    @value.Value::null(),
+  )
+  expect_values(missing, [])
+  let negative = eval_policy_case(
+    source,
+    "data.calc.negative",
+    @value.Value::null(),
+  )
+  expect_values(negative, [])
+}
+
+///|
 test "every policy checks all array members in rule definitions" {
   let source =
     #|package p

@@ -13,7 +13,7 @@ fn eval_rule(
   for rule in definitions {
     let environment = match
       program.module_for_rule(package_name, rule_name, rule.span.filename) {
-      Some(policy_module) => import_environment(policy_module, context)
+      Some(policy_module) => Environment::for_module(policy_module)
       None => Environment::empty()
     }
     match rule.kind() {
@@ -53,6 +53,7 @@ fn eval_rule(
             break
           }
         }
+      @syntax.RuleKind::Function(_, _) => ()
       @syntax.RuleKind::IncrementalSet(head_value) => {
         is_incremental_set = true
         let rows = eval_body(rule.body(), environment, context)
@@ -99,36 +100,4 @@ fn eval_rule(
   } else {
     default_value
   }
-}
-
-///|
-fn import_environment(
-  policy_module : @syntax.PolicyModule,
-  context : EvalContext,
-) -> Environment {
-  let mut environment = Environment::empty()
-  for item in policy_module.imports() {
-    let path = item.path()
-    if path.length() < 2 || path[0] != "data" {
-      continue
-    }
-    let parts : Array[@syntax.RefPart] = []
-    for index in 1..<path.length() {
-      parts.push(@syntax.RefPart::Field(path[index]))
-    }
-    match resolve_data_reference(parts, environment, context) {
-      Some(value) => {
-        let import_name = match item.alias_name() {
-          Some(name) => name
-          None => path[path.length() - 1]
-        }
-        match environment.bind(import_name, value) {
-          Some(updated) => environment = updated
-          None => ()
-        }
-      }
-      None => ()
-    }
-  }
-  environment
 }

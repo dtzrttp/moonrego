@@ -55,6 +55,63 @@ test "else branches do not share local bindings" {
 }
 
 ///|
+test "user function calls have their declared arity" {
+  let diagnostics = @compile.compile_source(
+    "package p\nf(x) := x\nresult := f(1, 2)", "function-arity.rego",
+  )
+  assert_true(
+    diagnostics.any(fn(diagnostic) { diagnostic.code() == "rego_type_error" }),
+  )
+}
+
+///|
+test "function parameters do not bind caller variables" {
+  let diagnostics = @compile.compile_source(
+    "package p\nf(x) := x\nresult := x if { f(1) }", "function-scope.rego",
+  )
+  assert_true(
+    diagnostics.any(fn(diagnostic) {
+      diagnostic.code() == "rego_unsafe_var_error" &&
+      diagnostic.message().contains("x")
+    }),
+  )
+}
+
+///|
+test "user functions cannot overload arity or share a default document" {
+  let overload = @compile.compile_source(
+    "package p\nf(x) := x\nf(x, y) := x", "function-overload.rego",
+  )
+  assert_true(
+    overload.any(fn(diagnostic) { diagnostic.code() == "rego_type_error" }),
+  )
+  let shared_name = @compile.compile_source(
+    "package p\ndefault f := false\nf(x) := x", "function-default-conflict.rego",
+  )
+  assert_true(
+    shared_name.any(fn(diagnostic) { diagnostic.code() == "rego_type_error" }),
+  )
+}
+
+///|
+test "checks function calls and variables inside composite literals" {
+  let arity = @compile.compile_source(
+    "package p\nf(x) := x\nresult := [f(1, 2)]", "function-nested-arity.rego",
+  )
+  assert_true(
+    arity.any(fn(diagnostic) { diagnostic.code() == "rego_type_error" }),
+  )
+  let unsafe_diagnostics = @compile.compile_source(
+    "package p\nresult := [missing]", "nested-unsafe.rego",
+  )
+  assert_true(
+    unsafe_diagnostics.any(fn(diagnostic) {
+      diagnostic.code() == "rego_unsafe_var_error"
+    }),
+  )
+}
+
+///|
 test "every uses a local scope while keeping outer variables visible" {
   let diagnostics = @compile.compile_source(
     (

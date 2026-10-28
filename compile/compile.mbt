@@ -90,19 +90,49 @@ pub fn compile_source(
 /// Check parsed modules and build a rule index for later evaluation.
 pub fn compile_modules(modules : Array[@syntax.PolicyModule]) -> CompileResult {
   let diagnostics : Array[@diagnostic.Diagnostic] = []
-  let rule_shapes : Array[(String, String, Bool, @diagnostic.SourceSpan)] = []
+  let rule_shapes : Array[(String, String, Bool, Bool, @diagnostic.SourceSpan)] = []
+  let signatures : Array[(String, String, Int32)] = []
+  let function_keys : Array[String] = []
   for policy_module in modules {
+    for rule in policy_module.rules() {
+      if rule.kind() is @syntax.RuleKind::Function(parameters, _) {
+        let package_name = policy_module.package_name()
+        signatures.push((package_name, rule.name(), parameters.length()))
+        let key = package_name + "." + rule.name()
+        if !function_keys.contains(key) {
+          function_keys.push(key)
+        }
+      }
+    }
+  }
+  for policy_module in modules {
+    let functions : Array[(String, Int32)] = []
+    for (package_name, name, arity) in signatures {
+      if package_name == policy_module.package_name() {
+        functions.push((name, arity))
+      }
+    }
     for rule in policy_module.rules() {
       let key = "\{policy_module.package_name()}.\{rule.name()}"
       let shape = rule.shape()
       let is_default = rule.kind() is @syntax.RuleKind::Default(_)
+      let is_function = rule.kind() is @syntax.RuleKind::Function(_, _)
       for
-        (previous_key, previous_shape, previous_default, previous_span) in rule_shapes {
+        (
+          previous_key,
+          previous_shape,
+          previous_default,
+          previous_function,
+          previous_span,
+        ) in rule_shapes {
         let duplicate_default = is_default && previous_default
         let conflicting_shape = !is_default &&
           !previous_default &&
           shape != previous_shape
-        if key == previous_key && (conflicting_shape || duplicate_default) {
+        let function_default_conflict = (is_default && previous_function) ||
+          (is_function && previous_default)
+        if key == previous_key &&
+          (conflicting_shape || duplicate_default || function_default_conflict) {
           let message = if duplicate_default {
             "rule '\{key}' has multiple default definitions"
           } else {
@@ -118,47 +148,75 @@ pub fn compile_modules(modules : Array[@syntax.PolicyModule]) -> CompileResult {
           )
         }
       }
-      rule_shapes.push((key, shape, is_default, rule.span))
-      check_rule(policy_module, rule, diagnostics)
+      rule_shapes.push((key, shape, is_default, is_function, rule.span))
+      if rule.kind() is @syntax.RuleKind::Function(_, _) {
+        if builtin_arity(rule.name()) is Some(_) {
+          diagnostics.push(
+            @diagnostic.Diagnostic::error(
+              @diagnostic.Stage::Compile,
+              "rego_unsupported_feature",
+              "user functions cannot shadow built-ins in this implementation",
+              rule.span,
+            ),
+          )
+        }
+      }
+      check_rule(policy_module, rule, functions, diagnostics)
     }
   }
   let known_keys : Array[String] = []
-  for (key, _, _, _) in rule_shapes {
+  for (key, _, _, _, _) in rule_shapes {
     if !known_keys.contains(key) {
       known_keys.push(key)
     }
   }
   let dependencies : Array[(String, String, @diagnostic.SourceSpan)] = []
   for policy_module in modules {
+    let package_name = policy_module.package_name()
     let import_aliases = import_alias_paths(policy_module)
     for rule in policy_module.rules() {
       let owner = "\{policy_module.package_name()}.\{rule.name()}"
+      let rule_import_aliases = match rule.kind() {
+        @syntax.RuleKind::Function(parameters, _) =>
+          import_aliases.filter(fn(entry) { !parameters.contains(entry.0) })
+        _ => import_aliases
+      }
       for expression in rule.body() {
-        collect_dependencies(expression, owner, known_keys, dependencies)
+        collect_dependencies(
+          expression, owner, package_name, known_keys, function_keys, dependencies,
+        )
         collect_import_dependencies(
-          expression, owner, import_aliases, known_keys, dependencies,
+          expression, owner, rule_import_aliases, known_keys, dependencies,
         )
       }
       match rule.kind() {
         @syntax.RuleKind::Default(value)
         | @syntax.RuleKind::Complete(Some(value))
-        | @syntax.RuleKind::IncrementalSet(value) => {
-          collect_dependencies(value, owner, known_keys, dependencies)
+        | @syntax.RuleKind::IncrementalSet(value)
+        | @syntax.RuleKind::Function(_, Some(value)) => {
+          collect_dependencies(
+            value, owner, package_name, known_keys, function_keys, dependencies,
+          )
           collect_import_dependencies(
-            value, owner, import_aliases, known_keys, dependencies,
+            value, owner, rule_import_aliases, known_keys, dependencies,
           )
         }
-        @syntax.RuleKind::Complete(None) => ()
+        @syntax.RuleKind::Complete(None)
+        | @syntax.RuleKind::Function(_, None) => ()
         @syntax.RuleKind::OrderedComplete(branches) =>
           for branch in branches {
             for expression in branch.body {
-              collect_dependencies(expression, owner, known_keys, dependencies)
+              collect_dependencies(
+                expression, owner, package_name, known_keys, function_keys, dependencies,
+              )
               collect_import_dependencies(
                 expression, owner, import_aliases, known_keys, dependencies,
               )
             }
             if branch.value is Some(value) {
-              collect_dependencies(value, owner, known_keys, dependencies)
+              collect_dependencies(
+                value, owner, package_name, known_keys, function_keys, dependencies,
+              )
               collect_import_dependencies(
                 value, owner, import_aliases, known_keys, dependencies,
               )
@@ -375,21 +433,29 @@ fn imported_rule_target(
 fn collect_dependencies(
   expression : @syntax.Expr,
   owner : String,
+  package_name : String,
   known_keys : Array[String],
+  function_keys : Array[String],
   dependencies : Array[(String, String, @diagnostic.SourceSpan)],
 ) -> Unit {
   match expression {
     @syntax.Expr::Term(@syntax.Term::Array(items), _) =>
       for item in items {
-        collect_dependencies(item, owner, known_keys, dependencies)
+        collect_dependencies(
+          item, owner, package_name, known_keys, function_keys, dependencies,
+        )
       }
     @syntax.Expr::Term(@syntax.Term::Object(items), _) =>
       for (_, value) in items {
-        collect_dependencies(value, owner, known_keys, dependencies)
+        collect_dependencies(
+          value, owner, package_name, known_keys, function_keys, dependencies,
+        )
       }
     @syntax.Expr::Term(@syntax.Term::Set(items), _) =>
       for item in items {
-        collect_dependencies(item, owner, known_keys, dependencies)
+        collect_dependencies(
+          item, owner, package_name, known_keys, function_keys, dependencies,
+        )
       }
     @syntax.Expr::Term(_, _) => ()
     @syntax.Expr::Ref(root, parts, span) => {
@@ -397,52 +463,91 @@ fn collect_dependencies(
         Some(target) => dependencies.push((owner, target, span))
         None => ()
       }
-      collect_dependencies(root, owner, known_keys, dependencies)
+      collect_dependencies(
+        root, owner, package_name, known_keys, function_keys, dependencies,
+      )
       for part in parts {
         match part {
           @syntax.RefPart::Field(_) => ()
           @syntax.RefPart::Index(index) =>
-            collect_dependencies(index, owner, known_keys, dependencies)
+            collect_dependencies(
+              index, owner, package_name, known_keys, function_keys, dependencies,
+            )
         }
       }
     }
     @syntax.Expr::Unary(_, inner, _) =>
-      collect_dependencies(inner, owner, known_keys, dependencies)
+      collect_dependencies(
+        inner, owner, package_name, known_keys, function_keys, dependencies,
+      )
     @syntax.Expr::Binary(_, left, right, _) => {
-      collect_dependencies(left, owner, known_keys, dependencies)
-      collect_dependencies(right, owner, known_keys, dependencies)
+      collect_dependencies(
+        left, owner, package_name, known_keys, function_keys, dependencies,
+      )
+      collect_dependencies(
+        right, owner, package_name, known_keys, function_keys, dependencies,
+      )
     }
-    @syntax.Expr::Call(_, arguments, _) =>
-      for argument in arguments {
-        collect_dependencies(argument, owner, known_keys, dependencies)
+    @syntax.Expr::Call(name, arguments, span) => {
+      let target = package_name + "." + name
+      if function_keys.contains(target) {
+        dependencies.push((owner, target, span))
       }
+      for argument in arguments {
+        collect_dependencies(
+          argument, owner, package_name, known_keys, function_keys, dependencies,
+        )
+      }
+    }
     @syntax.Expr::SomeIn(_, collection, _) =>
-      collect_dependencies(collection, owner, known_keys, dependencies)
+      collect_dependencies(
+        collection, owner, package_name, known_keys, function_keys, dependencies,
+      )
     @syntax.Expr::SomeInPair(_, _, collection, _) =>
-      collect_dependencies(collection, owner, known_keys, dependencies)
+      collect_dependencies(
+        collection, owner, package_name, known_keys, function_keys, dependencies,
+      )
     @syntax.Expr::Every(_, _, domain, body, _) => {
-      collect_dependencies(domain, owner, known_keys, dependencies)
+      collect_dependencies(
+        domain, owner, package_name, known_keys, function_keys, dependencies,
+      )
       for expression in body {
-        collect_dependencies(expression, owner, known_keys, dependencies)
+        collect_dependencies(
+          expression, owner, package_name, known_keys, function_keys, dependencies,
+        )
       }
     }
     @syntax.Expr::ArrayComprehension(element, body, _) => {
-      collect_dependencies(element, owner, known_keys, dependencies)
+      collect_dependencies(
+        element, owner, package_name, known_keys, function_keys, dependencies,
+      )
       for expression in body {
-        collect_dependencies(expression, owner, known_keys, dependencies)
+        collect_dependencies(
+          expression, owner, package_name, known_keys, function_keys, dependencies,
+        )
       }
     }
     @syntax.Expr::SetComprehension(element, body, _) => {
-      collect_dependencies(element, owner, known_keys, dependencies)
+      collect_dependencies(
+        element, owner, package_name, known_keys, function_keys, dependencies,
+      )
       for expression in body {
-        collect_dependencies(expression, owner, known_keys, dependencies)
+        collect_dependencies(
+          expression, owner, package_name, known_keys, function_keys, dependencies,
+        )
       }
     }
     @syntax.Expr::ObjectComprehension(key, value, body, _) => {
-      collect_dependencies(key, owner, known_keys, dependencies)
-      collect_dependencies(value, owner, known_keys, dependencies)
+      collect_dependencies(
+        key, owner, package_name, known_keys, function_keys, dependencies,
+      )
+      collect_dependencies(
+        value, owner, package_name, known_keys, function_keys, dependencies,
+      )
       for expression in body {
-        collect_dependencies(expression, owner, known_keys, dependencies)
+        collect_dependencies(
+          expression, owner, package_name, known_keys, function_keys, dependencies,
+        )
       }
     }
   }
@@ -519,27 +624,38 @@ fn path_exists(
 fn check_rule(
   policy_module : @syntax.PolicyModule,
   rule : @syntax.Rule,
+  functions : Array[(String, Int32)],
   diagnostics : Array[@diagnostic.Diagnostic],
 ) -> Unit {
   let bound = import_aliases(policy_module)
+  if rule.kind() is @syntax.RuleKind::Function(parameters, _) {
+    for parameter in parameters {
+      if !bound.contains(parameter) {
+        bound.push(parameter)
+      }
+    }
+  }
   for expression in rule.body() {
-    check_expression(expression, bound, diagnostics) |> ignore
+    check_expression(expression, bound, diagnostics, functions) |> ignore
   }
   match rule.kind() {
     @syntax.RuleKind::Default(value) =>
-      check_expression(value, bound, diagnostics) |> ignore
+      check_expression(value, bound, diagnostics, functions) |> ignore
     @syntax.RuleKind::Complete(Some(value))
-    | @syntax.RuleKind::IncrementalSet(value) =>
-      check_expression(value, bound, diagnostics) |> ignore
-    @syntax.RuleKind::Complete(None) => ()
+    | @syntax.RuleKind::IncrementalSet(value)
+    | @syntax.RuleKind::Function(_, Some(value)) =>
+      check_expression(value, bound, diagnostics, functions) |> ignore
+    @syntax.RuleKind::Complete(None) | @syntax.RuleKind::Function(_, None) => ()
     @syntax.RuleKind::OrderedComplete(branches) =>
       for branch in branches {
         let branch_bound = import_aliases(policy_module)
         for expression in branch.body {
-          check_expression(expression, branch_bound, diagnostics) |> ignore
+          check_expression(expression, branch_bound, diagnostics, functions)
+          |> ignore
         }
         if branch.value is Some(value) {
-          check_expression(value, branch_bound, diagnostics) |> ignore
+          check_expression(value, branch_bound, diagnostics, functions)
+          |> ignore
         }
       }
   }
@@ -567,6 +683,7 @@ fn check_expression(
   expression : @syntax.Expr,
   bound : Array[String],
   diagnostics : Array[@diagnostic.Diagnostic],
+  functions : Array[(String, Int32)],
 ) -> Bool {
   match expression {
     @syntax.Expr::Term(@syntax.Term::Variable(name), span) =>
@@ -583,41 +700,63 @@ fn check_expression(
         )
         false
       }
+    @syntax.Expr::Term(@syntax.Term::Array(items), _)
+    | @syntax.Expr::Term(@syntax.Term::Set(items), _) => {
+      let mut safe = true
+      for item in items {
+        safe = check_expression(item, bound, diagnostics, functions) && safe
+      }
+      safe
+    }
+    @syntax.Expr::Term(@syntax.Term::Object(items), _) => {
+      let mut safe = true
+      for (_, value) in items {
+        safe = check_expression(value, bound, diagnostics, functions) && safe
+      }
+      safe
+    }
     @syntax.Expr::Term(_, _) => true
     @syntax.Expr::Ref(root, parts, _) => {
-      let mut safe = check_expression(root, bound, diagnostics)
+      let mut safe = check_expression(root, bound, diagnostics, functions)
       for part in parts {
         match part {
           @syntax.RefPart::Field(_) => ()
           @syntax.RefPart::Index(index) =>
-            safe = check_expression(index, bound, diagnostics) && safe
+            safe = check_expression(index, bound, diagnostics, functions) &&
+              safe
         }
       }
       safe
     }
     @syntax.Expr::Unary(_, inner, _) =>
-      check_expression(inner, bound, diagnostics)
+      check_expression(inner, bound, diagnostics, functions)
     @syntax.Expr::Binary(@syntax.BinaryOp::Assign, left, right, _) => {
-      let right_safe = check_expression(right, bound, diagnostics)
+      let right_safe = check_expression(right, bound, diagnostics, functions)
       match left {
         @syntax.Expr::Term(@syntax.Term::Variable(name), _) => {
           if right_safe && !bound.contains(name) {
             bound.push(name)
           } else if right_safe && bound.contains(name) {
-            check_expression(left, bound, diagnostics) |> ignore
+            check_expression(left, bound, diagnostics, functions) |> ignore
           }
           right_safe
         }
-        _ => check_expression(left, bound, diagnostics) && right_safe
+        _ => check_expression(left, bound, diagnostics, functions) && right_safe
       }
     }
     @syntax.Expr::Binary(_, left, right, _) => {
-      let left_safe = check_expression(left, bound, diagnostics)
-      let right_safe = check_expression(right, bound, diagnostics)
+      let left_safe = check_expression(left, bound, diagnostics, functions)
+      let right_safe = check_expression(right, bound, diagnostics, functions)
       left_safe && right_safe
     }
     @syntax.Expr::Call(name, arguments, span) => {
-      match builtin_arity(name) {
+      let mut arity = builtin_arity(name)
+      for (function_name, expected) in functions {
+        if function_name == name {
+          arity = Some(expected)
+        }
+      }
+      match arity {
         Some(expected) if expected != arguments.length() =>
           diagnostics.push(
             @diagnostic.Diagnostic::error(
@@ -640,19 +779,19 @@ fn check_expression(
       }
       let mut safe = true
       for argument in arguments {
-        safe = check_expression(argument, bound, diagnostics) && safe
+        safe = check_expression(argument, bound, diagnostics, functions) && safe
       }
       safe
     }
     @syntax.Expr::SomeIn(name, collection, _) => {
-      let safe = check_expression(collection, bound, diagnostics)
+      let safe = check_expression(collection, bound, diagnostics, functions)
       if safe && !bound.contains(name) {
         bound.push(name)
       }
       safe
     }
     @syntax.Expr::SomeInPair(key_name, value_name, collection, _) => {
-      let safe = check_expression(collection, bound, diagnostics)
+      let safe = check_expression(collection, bound, diagnostics, functions)
       if safe {
         if !bound.contains(key_name) {
           bound.push(key_name)
@@ -664,7 +803,7 @@ fn check_expression(
       safe
     }
     @syntax.Expr::Every(key_name, value_name, domain, body, _) => {
-      let domain_safe = check_expression(domain, bound, diagnostics)
+      let domain_safe = check_expression(domain, bound, diagnostics, functions)
       let local_bound = bound.copy()
       match key_name {
         Some(name) if !local_bound.contains(name) => local_bound.push(name)
@@ -675,7 +814,8 @@ fn check_expression(
       }
       let mut safe = domain_safe
       for expression in body {
-        safe = check_expression(expression, local_bound, diagnostics) && safe
+        safe = check_expression(expression, local_bound, diagnostics, functions) &&
+          safe
       }
       safe
     }
@@ -683,26 +823,31 @@ fn check_expression(
       let local_bound = bound.copy()
       let mut safe = true
       for expression in body {
-        safe = check_expression(expression, local_bound, diagnostics) && safe
+        safe = check_expression(expression, local_bound, diagnostics, functions) &&
+          safe
       }
-      check_expression(element, local_bound, diagnostics) && safe
+      check_expression(element, local_bound, diagnostics, functions) && safe
     }
     @syntax.Expr::SetComprehension(element, body, _) => {
       let local_bound = bound.copy()
       let mut safe = true
       for expression in body {
-        safe = check_expression(expression, local_bound, diagnostics) && safe
+        safe = check_expression(expression, local_bound, diagnostics, functions) &&
+          safe
       }
-      check_expression(element, local_bound, diagnostics) && safe
+      check_expression(element, local_bound, diagnostics, functions) && safe
     }
     @syntax.Expr::ObjectComprehension(key, value, body, _) => {
       let local_bound = bound.copy()
       let mut safe = true
       for expression in body {
-        safe = check_expression(expression, local_bound, diagnostics) && safe
+        safe = check_expression(expression, local_bound, diagnostics, functions) &&
+          safe
       }
-      let key_safe = check_expression(key, local_bound, diagnostics)
-      let value_safe = check_expression(value, local_bound, diagnostics)
+      let key_safe = check_expression(key, local_bound, diagnostics, functions)
+      let value_safe = check_expression(
+        value, local_bound, diagnostics, functions,
+      )
       key_safe && value_safe && safe
     }
   }

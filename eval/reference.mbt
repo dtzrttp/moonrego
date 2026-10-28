@@ -1,4 +1,29 @@
 ///|
+fn resolve_import(
+  name : String,
+  environment : Environment,
+  context : EvalContext,
+) -> @value.Value? {
+  for item in environment.imports {
+    let path = item.path()
+    if path.length() >= 2 && path[0] == "data" {
+      let import_name = match item.alias_name() {
+        Some(alias_name) => alias_name
+        None => path[path.length() - 1]
+      }
+      if import_name == name {
+        let parts : Array[@syntax.RefPart] = []
+        for index in 1..<path.length() {
+          parts.push(@syntax.RefPart::Field(path[index]))
+        }
+        return resolve_data_reference(parts, environment, context)
+      }
+    }
+  }
+  None
+}
+
+///|
 fn eval_reference(
   root : @syntax.Expr,
   parts : Array[@syntax.RefPart],

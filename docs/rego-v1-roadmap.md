@@ -54,7 +54,9 @@ gap, not evidence of full compatibility.
 The existing implementation supports only the subset in compatibility.md.
 Ordered complete-rule else chains with conditional and value-only branches
 have been added, and
-single-variable object iteration now binds values. Functions, with, rule
+single-variable object iteration now binds values. Same-package functions with
+named parameters have an initial implementation; patterns, default functions,
+qualified calls and function-associated else are still missing. Functions, with, rule
 reference heads, many operations and built-ins are not
 complete. Existing first-party tests do not establish OPA parity. OPA v1.21.4
 was not available locally during the previous oracle attempt, so the capability

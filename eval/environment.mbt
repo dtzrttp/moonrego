@@ -1,11 +1,27 @@
 ///|
 priv struct Environment {
   bindings : Map[String, @value.Value]
+  package_name : String?
+  imports : Array[@syntax.Import]
 }
 
 ///|
 fn Environment::empty() -> Environment {
-  { bindings: Map([]), }
+  { bindings: Map([]), package_name: None, imports: [], }
+}
+
+///|
+fn Environment::for_package(package_name : String) -> Environment {
+  { bindings: Map([]), package_name: Some(package_name), imports: [], }
+}
+
+///|
+fn Environment::for_module(policy_module : @syntax.PolicyModule) -> Environment {
+  {
+    bindings: Map([]),
+    package_name: Some(policy_module.package_name()),
+    imports: policy_module.imports(),
+  }
 }
 
 ///|
@@ -27,7 +43,7 @@ fn Environment::bind(
         bindings[key] = previous
       }
       bindings[name] = value
-      Some({ bindings, })
+      Some({ bindings, package_name: self.package_name, imports: self.imports, })
     }
   }
 }
@@ -40,5 +56,5 @@ fn Environment::bind_local(
 ) -> Environment {
   let bindings = self.bindings.copy()
   bindings[name] = value
-  { bindings, }
+  { bindings, package_name: self.package_name, imports: self.imports, }
 }

@@ -213,3 +213,27 @@ test "rule bodies resolve imported data aliases" {
   assert_eq(result.values().length(), 1)
   assert_true(result.values()[0].equal(@value.Value::boolean(true)))
 }
+
+///|
+test "an unused self-import is not evaluated" {
+  let parsed = @parser.parse_module(
+    "package p\nimport data.p.result as unused\nresult := 1", "unused-import.rego",
+  )
+  assert_eq(parsed.diagnostics().length(), 0)
+  let checked = @compile.compile_modules([parsed.policy().unwrap()])
+  assert_eq(checked.diagnostics().length(), 0)
+  let result = @eval.eval_program_query(
+    checked.program().unwrap(),
+    "data.p.result",
+    @value.Value::null(),
+    @value.Value::null(),
+    @eval.EvalOptions::new(100),
+  )
+  assert_eq(result.diagnostics().length(), 0)
+  assert_eq(result.values().length(), 1)
+  assert_true(
+    result.values()[0].equal(
+      @value.Value::number(@value.Number::parse("1").unwrap()),
+    ),
+  )
+}
