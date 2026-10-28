@@ -26,9 +26,9 @@ blocked_set_every if {
   }
 }
 
-object_key_every if {
-  every name in input.users {
-    startswith(name, "team-")
+object_value_every if {
+  every user in input.users {
+    "staff" in user.roles
   }
 }
 

@@ -32,6 +32,27 @@ fn eval_rule(
           }
         }
       }
+      @syntax.RuleKind::OrderedComplete(branches) =>
+        for branch in branches {
+          let before = complete_values.length()
+          let rows = eval_body(branch.body, environment, context)
+          for (branch_environment, _) in rows {
+            match branch.value {
+              Some(expression) =>
+                match eval_value(expression, branch_environment, context) {
+                  Some(value) => complete_values.push(value)
+                  None => ()
+                }
+              None => complete_values.push(@value.Value::boolean(true))
+            }
+          }
+          if context.diagnostics.length() > 0 {
+            return None
+          }
+          if complete_values.length() > before {
+            break
+          }
+        }
       @syntax.RuleKind::IncrementalSet(head_value) => {
         is_incremental_set = true
         let rows = eval_body(rule.body(), environment, context)

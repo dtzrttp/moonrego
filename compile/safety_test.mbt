@@ -37,6 +37,24 @@ test "accepts both variables bound by key-value some-in" {
 }
 
 ///|
+test "else branches do not share local bindings" {
+  let diagnostics = @compile.compile_source(
+    (
+      #|package p
+      #|decision := x if { x := 1; false }
+      #|else := x if { true }
+    ),
+    "else-scope.rego",
+  )
+  assert_true(
+    diagnostics.any(fn(diagnostic) {
+      diagnostic.code() == "rego_unsafe_var_error" &&
+      diagnostic.message().contains("x")
+    }),
+  )
+}
+
+///|
 test "every uses a local scope while keeping outer variables visible" {
   let diagnostics = @compile.compile_source(
     (

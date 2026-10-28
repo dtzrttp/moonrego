@@ -80,6 +80,88 @@ test "default and complete rules preserve Rego fallback behavior" {
 }
 
 ///|
+test "ordered else rules choose the first matching branch" {
+  let source =
+    #|package p
+    #|decision := "first" if { input.role == "admin" }
+    #|else := "second" if { input.role != "none" }
+    #|else := "last" if { true }
+  let first = eval_policy_case(
+    source,
+    "data.p.decision",
+    @value.Value::Object({ "role": @value.Value::string("admin") }),
+  )
+  expect_values(first, [@value.Value::string("first")])
+  let second = eval_policy_case(
+    source,
+    "data.p.decision",
+    @value.Value::Object({ "role": @value.Value::string("viewer") }),
+  )
+  expect_values(second, [@value.Value::string("second")])
+  let last = eval_policy_case(
+    source,
+    "data.p.decision",
+    @value.Value::Object({ "role": @value.Value::string("none") }),
+  )
+  expect_values(last, [@value.Value::string("last")])
+}
+
+///|
+test "a defined false result stops an else chain" {
+  let source =
+    #|package p
+    #|decision := false if { true }
+    #|else := true if { true }
+  let result = eval_policy_case(source, "data.p.decision", @value.Value::null())
+  expect_values(result, [@value.Value::boolean(false)])
+}
+
+///|
+test "else supports implicit true and equals rule values" {
+  let implicit = eval_policy_case(
+    "package p\nallow if { false } else if { true }",
+    "data.p.allow",
+    @value.Value::null(),
+  )
+  expect_values(implicit, [@value.Value::boolean(true)])
+  let explicit = eval_policy_case(
+    "package p\nanswer := 0 if { false } else = 42 if { true }",
+    "data.p.answer",
+    @value.Value::null(),
+  )
+  expect_values(explicit, [
+    @value.Value::number(@value.Number::parse("42").unwrap()),
+  ])
+}
+
+///|
+test "default applies only when the else chain is undefined" {
+  let source =
+    #|package p
+    #|default decision := "default"
+    #|decision := "first" if { input.role == "admin" }
+    #|else := "second" if { input.role == "viewer" }
+  let result = eval_policy_case(
+    source,
+    "data.p.decision",
+    @value.Value::Object({ "role": @value.Value::string("guest") }),
+  )
+  expect_values(result, [@value.Value::string("default")])
+}
+
+///|
+test "ordered rules support an unconditional else value" {
+  let result = eval_policy_case(
+    "package p\ndecision := 1 if { false } else := 2",
+    "data.p.decision",
+    @value.Value::null(),
+  )
+  expect_values(result, [
+    @value.Value::number(@value.Number::parse("2").unwrap()),
+  ])
+}
+
+///|
 test "every policy checks all array members in rule definitions" {
   let source =
     #|package p

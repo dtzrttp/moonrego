@@ -198,6 +198,65 @@ fn Parser::parse_rule(self : Parser) -> @syntax.Rule? {
   } else {
     start
   }
+  if self.current().kind() is @syntax.TokenKind::Else {
+    let first_value = match kind {
+      @syntax.RuleKind::Complete(value) => value
+      _ => {
+        self.error("else is only supported on complete rules")
+        return None
+      }
+    }
+    if body.length() == 0 {
+      self.error("expected a nonempty rule body before else")
+      return None
+    }
+    let branches : Array[@syntax.RuleBranch] = [
+      @syntax.RuleBranch::new(first_value, body, start.join(end)),
+    ]
+    let mut chain_end = end
+    while self.current().kind() is @syntax.TokenKind::Else {
+      let branch_start = self.advance().span()
+      let branch_value = match self.current().kind() {
+        @syntax.TokenKind::Assign | @syntax.TokenKind::Equal => {
+          self.advance() |> ignore
+          guard self.parse_precedence(0) is Some(value) else { return None }
+          Some(value)
+        }
+        _ => None
+      }
+      let branch_body = if self.current().kind() is @syntax.TokenKind::If {
+        self.advance() |> ignore
+        guard self.parse_body() is Some(parsed_body) else { return None }
+        if parsed_body.length() == 0 {
+          self.error("expected a nonempty else body")
+          return None
+        }
+        parsed_body
+      } else {
+        if branch_value is None {
+          self.error("expected an else value or 'if'")
+          return None
+        }
+        []
+      }
+      chain_end = self.tokens[self.index - 1].span()
+      branches.push(
+        @syntax.RuleBranch::new(
+          branch_value,
+          branch_body,
+          branch_start.join(chain_end),
+        ),
+      )
+    }
+    return Some(
+      @syntax.Rule::new(
+        name,
+        @syntax.RuleKind::OrderedComplete(branches),
+        [],
+        start.join(chain_end),
+      ),
+    )
+  }
   Some(@syntax.Rule::new(name, kind, body, start.join(end)))
 }
 

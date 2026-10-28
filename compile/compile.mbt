@@ -149,6 +149,21 @@ pub fn compile_modules(modules : Array[@syntax.PolicyModule]) -> CompileResult {
           )
         }
         @syntax.RuleKind::Complete(None) => ()
+        @syntax.RuleKind::OrderedComplete(branches) =>
+          for branch in branches {
+            for expression in branch.body {
+              collect_dependencies(expression, owner, known_keys, dependencies)
+              collect_import_dependencies(
+                expression, owner, import_aliases, known_keys, dependencies,
+              )
+            }
+            if branch.value is Some(value) {
+              collect_dependencies(value, owner, known_keys, dependencies)
+              collect_import_dependencies(
+                value, owner, import_aliases, known_keys, dependencies,
+              )
+            }
+          }
       }
     }
   }
@@ -517,6 +532,16 @@ fn check_rule(
     | @syntax.RuleKind::IncrementalSet(value) =>
       check_expression(value, bound, diagnostics) |> ignore
     @syntax.RuleKind::Complete(None) => ()
+    @syntax.RuleKind::OrderedComplete(branches) =>
+      for branch in branches {
+        let branch_bound = import_aliases(policy_module)
+        for expression in branch.body {
+          check_expression(expression, branch_bound, diagnostics) |> ignore
+        }
+        if branch.value is Some(value) {
+          check_expression(value, branch_bound, diagnostics) |> ignore
+        }
+      }
   }
 }
 

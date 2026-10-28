@@ -167,11 +167,10 @@ fn eval_step(
             }
           }
         @value.Value::Object(fields) =>
-          for (key, _) in fields {
+          for (_, item) in fields {
             if !context.charge(span) {
               return []
             }
-            let item = @value.Value::string(key)
             match environment.bind(name, item) {
               Some(updated) => results.push((updated, item))
               None => ()
@@ -297,15 +296,11 @@ fn eval_every(
     @value.Value::Object(fields) =>
       for (key, item) in fields {
         if passes {
-          let value = match key_name {
-            Some(_) => item
-            None => @value.Value::string(key)
-          }
           passes = eval_every_item(
             key_name,
             value_name,
             Some(@value.Value::string(key)),
-            value,
+            item,
             body,
             span,
             environment,

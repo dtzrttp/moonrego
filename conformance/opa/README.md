@@ -35,7 +35,7 @@ From the repository root:
 opa eval --format raw --data conformance/opa/every.rego --input conformance/opa/every-input.json 'data.every_oracle.array_every'
 opa eval --format raw --data conformance/opa/every.rego --input conformance/opa/every-input.json 'data.every_oracle.object_every'
 opa eval --format raw --data conformance/opa/every.rego --input conformance/opa/every-input.json 'data.every_oracle.set_every'
-opa eval --format raw --data conformance/opa/every.rego --input conformance/opa/every-input.json 'data.every_oracle.object_key_every'
+opa eval --format raw --data conformance/opa/every.rego --input conformance/opa/every-input.json 'data.every_oracle.object_value_every'
 opa eval --format raw --data conformance/opa/every.rego --input conformance/opa/every-input.json 'data.every_oracle.empty_every'
 opa eval --format raw --data conformance/opa/every.rego --input conformance/opa/every-input.json 'data.every_oracle.empty_object_every'
 opa eval --format raw --data conformance/opa/every.rego --input conformance/opa/every-input.json 'data.every_oracle.empty_set_every'
@@ -49,11 +49,15 @@ opa check conformance/opa/every-set-pair.rego
 opa eval --format pretty --input conformance/opa/every-noncollection-input.json 'every item in input.value { true }'
 opa eval --format raw --data conformance/opa/every-duplicate-binder.rego --input conformance/opa/every-duplicate-binder-input.json 'data.every_duplicate_binder.equal_pair'
 opa eval --format raw --data conformance/opa/every-duplicate-binder.rego --input conformance/opa/every-duplicate-binder-input.json --fail 'data.every_duplicate_binder.unequal_pair'
+opa eval --format raw --data conformance/opa/else.rego --input conformance/opa/else-admin.json 'data.else_oracle.decision'
+opa eval --format raw --data conformance/opa/else.rego --input conformance/opa/else-viewer.json 'data.else_oracle.decision'
+opa eval --format raw --data conformance/opa/else.rego --input conformance/opa/else-none.json 'data.else_oracle.decision'
+opa eval --format raw --data conformance/opa/else.rego --input conformance/opa/else-admin.json 'data.else_oracle.false_stops'
 ```
 
 ## Unverified expectations
 
-- `array_every`, `object_every`, `set_every`, `object_key_every`, all three
+- `array_every`, `object_every`, `set_every`, `object_value_every`, all three
   `empty_*_every` rules, and `outer_binding` should produce `true`.
 - The blocked array/object inputs, `blocked_set_every`, and `undefined_every`
   should be undefined; commands using `--fail` should return nonzero.
@@ -65,6 +69,9 @@ opa eval --format raw --data conformance/opa/every-duplicate-binder.rego --input
   undefined. MoonReGo currently treats the repeated name as one variable and
   requires the pair values to be equal; that interpretation is not yet
   confirmed against OPA v1.21.4.
+- The ordered else fixture is expected to return `primary`, `secondary`,
+  and `fallback` for the three inputs, and `false` for `false_stops`.
+  These are expectations, not observed OPA results.
 
 The [published Rego grammar](https://www.openpolicyagent.org/docs/policy-reference)
 defines an `every` body as a `query`, whose first production is a required

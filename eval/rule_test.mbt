@@ -89,6 +89,108 @@ test "conflicting complete rule values produce an evaluation error" {
 }
 
 ///|
+test "an ordered rule still conflicts with a separate definition" {
+  let parsed = @parser.parse_module(
+    (
+      #|package p
+      #|decision := "first" if { true }
+      #|else := "second" if { true }
+      #|decision := "other" if { true }
+    ),
+    "else-conflict.rego",
+  )
+  assert_eq(parsed.diagnostics().length(), 0)
+  let checked = @compile.compile_modules([parsed.policy().unwrap()])
+  assert_eq(checked.diagnostics().length(), 0)
+  let result = @eval.eval_program_query(
+    checked.program().unwrap(),
+    "data.p.decision",
+    @value.Value::null(),
+    @value.Value::null(),
+    @eval.EvalOptions::new(1000),
+  )
+  assert_true(
+    result.diagnostics().any(fn(d) { d.code() == "rego_eval_conflict_error" }),
+  )
+}
+
+///|
+test "ordered rules propagate strict errors and the shared step limit" {
+  let parsed = @parser.parse_module(
+    (
+      #|package p
+      #|decision := "first" if { upper(42) == "X" }
+      #|else := "fallback" if { true }
+    ),
+    "else-errors.rego",
+  )
+  assert_eq(parsed.diagnostics().length(), 0)
+  let program = @compile.compile_modules([parsed.policy().unwrap()])
+    .program()
+    .unwrap()
+  let strict = @eval.eval_program_query(
+    program,
+    "data.p.decision",
+    @value.Value::null(),
+    @value.Value::null(),
+    @eval.EvalOptions::new(1000).with_strict_builtin_errors(true),
+  )
+  assert_eq(strict.values().length(), 0)
+  assert_true(
+    strict.diagnostics().any(fn(d) { d.code() == "rego_eval_builtin_error" }),
+  )
+  let limited = @eval.eval_program_query(
+    program,
+    "data.p.decision",
+    @value.Value::null(),
+    @value.Value::null(),
+    @eval.EvalOptions::new(1),
+  )
+  assert_eq(limited.values().length(), 0)
+  assert_true(
+    limited.diagnostics().any(fn(d) { d.code() == "rego_eval_step_limit" }),
+  )
+}
+
+///|
+test "unconditional else head is evaluated only when reached" {
+  let parsed = @parser.parse_module(
+    (
+      #|package p
+      #|decision := "first" if { input.allowed }
+      #|else := upper(42)
+    ),
+    "else-head-error.rego",
+  )
+  assert_eq(parsed.diagnostics().length(), 0)
+  let program = @compile.compile_modules([parsed.policy().unwrap()])
+    .program()
+    .unwrap()
+  let options = @eval.EvalOptions::new(1000).with_strict_builtin_errors(true)
+  let first = @eval.eval_program_query(
+    program,
+    "data.p.decision",
+    @value.Value::Object({ "allowed": @value.Value::boolean(true) }),
+    @value.Value::null(),
+    options,
+  )
+  assert_eq(first.diagnostics().length(), 0)
+  assert_eq(first.values().length(), 1)
+  assert_true(first.values()[0].equal(@value.Value::string("first")))
+  let fallback = @eval.eval_program_query(
+    program,
+    "data.p.decision",
+    @value.Value::Object({ "allowed": @value.Value::boolean(false) }),
+    @value.Value::null(),
+    options,
+  )
+  assert_eq(fallback.values().length(), 0)
+  assert_true(
+    fallback.diagnostics().any(fn(d) { d.code() == "rego_eval_builtin_error" }),
+  )
+}
+
+///|
 test "rule bodies resolve imported data aliases" {
   let policy = @parser.parse_module(
       "package authz\nimport data.users as directory\nallow if directory[0].role == \"admin\"",

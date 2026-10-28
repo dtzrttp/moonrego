@@ -30,10 +30,27 @@ pub fn Import::alias_name(self : Import) -> String? {
 }
 
 ///|
+pub(all) struct RuleBranch {
+  value : Expr?
+  body : Array[Expr]
+  span : @diagnostic.SourceSpan
+}
+
+///|
+pub fn RuleBranch::new(
+  value : Expr?,
+  body : Array[Expr],
+  span : @diagnostic.SourceSpan,
+) -> RuleBranch {
+  { value, body, span, }
+}
+
+///|
 pub(all) enum RuleKind {
   Default(Expr)
   Complete(Expr?)
   IncrementalSet(Expr)
+  OrderedComplete(Array[RuleBranch])
 }
 
 ///|
@@ -73,7 +90,7 @@ pub fn Rule::body(self : Rule) -> Array[Expr] {
 pub fn Rule::shape(self : Rule) -> String {
   match self.kind {
     Default(_) => "default:\{self.name}"
-    Complete(_) => "complete:\{self.name}"
+    Complete(_) | OrderedComplete(_) => "complete:\{self.name}"
     IncrementalSet(_) => "contains:\{self.name}"
   }
 }

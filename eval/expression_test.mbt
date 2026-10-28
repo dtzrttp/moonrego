@@ -250,13 +250,37 @@ test "every pair with the same binder requires equal key and value" {
 }
 
 ///|
-test "every one-variable object iteration binds keys and set iteration binds members" {
+test "some-in over an object binds its values" {
+  let result = @eval.eval_query(
+    "some item in input; item",
+    @value.Value::Object({ "different-key": @value.Value::string("value") }),
+    @eval.EvalOptions::new(1000),
+  )
+  assert_eq(result.diagnostics().length(), 0)
+  assert_eq(result.values().length(), 1)
+  assert_true(result.values()[0].equal(@value.Value::string("value")))
+}
+
+///|
+test "every one-variable object iteration binds values" {
+  let result = @eval.eval_query(
+    "every item in input { item == \"value\" }",
+    @value.Value::Object({ "different-key": @value.Value::string("value") }),
+    @eval.EvalOptions::new(1000),
+  )
+  assert_eq(result.diagnostics().length(), 0)
+  assert_eq(result.values().length(), 1)
+  assert_true(result.values()[0].equal(@value.Value::boolean(true)))
+}
+
+///|
+test "every iterates object values and set members" {
   let object_result = @eval.eval_query(
-    "every name in input.users { startswith(name, \"team-\") }",
+    "every role in input.users { role != \"blocked\" }",
     @value.Value::Object({
       "users": @value.Value::Object({
-        "team-a": @value.Value::boolean(true),
-        "team-b": @value.Value::boolean(false),
+        "team-a": @value.Value::string("admin"),
+        "team-b": @value.Value::string("viewer"),
       }),
     }),
     @eval.EvalOptions::new(1000),

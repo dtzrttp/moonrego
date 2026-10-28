@@ -37,3 +37,32 @@ test "detects recursion through an imported rule alias" {
     }),
   )
 }
+
+///|
+test "detects recursion in a later else branch" {
+  let diagnostics = @compile.compile_source(
+    (
+      #|package p
+      #|allow := true if { false }
+      #|else := data.p.allow if { true }
+    ),
+    "else-recursion.rego",
+  )
+  assert_true(
+    diagnostics.any(fn(diagnostic) {
+      diagnostic.code() == "rego_recursion_error"
+    }),
+  )
+}
+
+///|
+test "detects recursion in an unconditional else head" {
+  let diagnostics = @compile.compile_source(
+    "package p\nallow := true if { false } else := data.p.allow", "else-head-recursion.rego",
+  )
+  assert_true(
+    diagnostics.any(fn(diagnostic) {
+      diagnostic.code() == "rego_recursion_error"
+    }),
+  )
+}

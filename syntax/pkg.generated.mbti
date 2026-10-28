@@ -88,10 +88,18 @@ pub fn Rule::name(Self) -> String
 pub fn Rule::new(String, RuleKind, Array[Expr], @diagnostic.SourceSpan) -> Self
 pub fn Rule::shape(Self) -> String
 
+pub(all) struct RuleBranch {
+  value : Expr?
+  body : Array[Expr]
+  span : @diagnostic.SourceSpan
+}
+pub fn RuleBranch::new(Expr?, Array[Expr], @diagnostic.SourceSpan) -> Self
+
 pub(all) enum RuleKind {
   Default(Expr)
   Complete(Expr?)
   IncrementalSet(Expr)
+  OrderedComplete(Array[RuleBranch])
 }
 
 pub(all) enum Term {
