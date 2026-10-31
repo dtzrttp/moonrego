@@ -29,10 +29,9 @@ Two-variable `some-in` over sets and composite binding patterns are reported as
 unsupported. `min` and `max` currently accept numeric collections only. Division,
 additional built-ins and deterministic result normalization remain open work. The
 `conformance/` package contains first-party semantic regression cases.
-Its separate OPA v1.21.4 oracle fixtures have not been executed because
-OPA is not installed locally; no OPA source or upstream test fixtures were
-copied. The implementation plan under `docs/superpowers/plans/` tracks the
-remaining status.
+Selected OPA v1.21.4 oracle fixtures were executed on 2026-10-31; comprehensive
+parity testing remains incomplete. No OPA source or upstream test fixtures were
+copied. See `conformance/opa/README.md` for the observed results and limits.
 
 ## Run the example
 

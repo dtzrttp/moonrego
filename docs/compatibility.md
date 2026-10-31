@@ -15,7 +15,7 @@ translated into different semantics.
 | Rules | Constant, `default`, complete boolean/value rules with `if`, ordered complete-rule `else` chains with conditional or unconditional value branches, and `contains` set rules |
 | Functions | Same-package calls to functions with named parameters, including multiple definitions, local bindings, conflict detection and shared step budget; default functions with literal values |
 | Expressions | JSON literals, arrays, string-key objects, sets, array, set, and object comprehensions, references, assignment, comparisons, `in`, `not`, `every`, and exact `+`, `-`, `*` |
-| Iteration | `some value in collection`; `some key, value in collection` for arrays and objects; `every value in collection`; `every key, value in collection` for arrays and objects |
+| Iteration | `some value in collection`; `some key, value in collection` for arrays and objects; `every value in collection`; `every key, value in collection` for arrays, objects and sets |
 | Compiler | Unsafe-variable checks, builtin name/arity checks, rule-shape/default conflicts, and recursion checks |
 | Evaluation | `input`/`data`, backtracking, complete/default/set rules, conflict diagnostics, and a maximum step count |
 | Builtins | `count`; `is_null`, `is_boolean`, `is_number`, `is_string`, `is_array`, `is_object`, `is_set`; `to_number`; `upper`, `lower`, `contains`, `startswith`, `endswith`; numeric `sum`, `min`, `max`; `array.concat`; `object.get`; `object.keys` |
@@ -38,15 +38,13 @@ set results use the shared evaluation step budget.
 `every` requires a nonempty braced body and supports arrays, objects, and sets.
 Both single-variable `some-in` and `every` bind object values.
 The one-variable `every` form binds array elements, object values, and set members; its
-two-variable form binds array indices and elements or object keys and values.
+two-variable form binds array indices and elements, object keys and values, or
+the same set member to both variables.
 Its header and body variables are local to the expression, and an empty
-collection passes vacuously. A missing domain is undefined. A defined
-non-collection domain reports `rego_type_error`; two-variable iteration over
-sets reports `rego_unsupported_feature`. `not every` is rejected during
-parsing. If the two header names are identical, their key and value bindings
-must be equal, so unequal pairs fail that `every` item. This follows Rego's
-general same-variable unification rule; direct OPA v1.21.4 execution remains
-pending.
+collection passes vacuously. A missing or dynamically resolved non-collection
+domain is undefined. Static non-collection type checking is incomplete. `not every`
+is rejected during parsing. Duplicate named `every` binders are rejected;
+OPA v1.21.4 confirms this and allows two-variable set iteration.
 
 ## Not implemented
 
@@ -59,7 +57,7 @@ pending.
 - complete deterministic result normalization, tracing, coverage, bundles, or OPA services.
 
 The current conformance package has first-party semantic regression cases.
-OPA v1.21.4 is documented as an oracle, but OPA is not installed in the
-development environment and the oracle commands have not been run. No upstream
+OPA v1.21.4 was acquired on 2026-10-31 and selected oracle checks were run;
+complete differential and upstream conformance suites remain pending. No upstream
 OPA test fixtures have been copied. See `conformance/README.md`,
 `conformance/opa/README.md`, and the root `NOTICE.md` for provenance and status.

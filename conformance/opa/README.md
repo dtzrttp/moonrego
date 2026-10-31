@@ -7,18 +7,24 @@ intended to be run with OPA v1.21.4, released 2026-10-23:
 
 ## Execution status
 
-**Not yet executed.** The local `opa` command was not installed on 2026-10-24.
-The command `opa version` exited with code 1 and PowerShell reported:
+On 2026-10-31 the official Windows v1.21.4 executable was downloaded outside
+the repository and verified against the release SHA-256. `opa version` reported
+1.21.4, commit `05c845177c80747a2aabb607f9318f981993cc76-dirty`.
+The executable hash was
+`efad1c0ee4e3150d213f7babdaff3440b18b93c7368b465fca42cda392947f7c`.
+The extracted `capabilities --current` reports 206 built-ins; a complete
+item-by-item implementation and differential audit is still pending.
+
+The earlier attempt on 2026-10-24 failed because `opa` was not installed:
 
 ```text
 The term 'opa' is not recognized as a name of a cmdlet, function, script file,
 or executable program.
 ```
 
-Install the official v1.21.4 Windows executable into a temporary directory,
-verify `opa version` prints `Version: 1.21.4`, then run and record every command
-and its stdout, stderr, and exit status below. None of the semantic outcomes
-listed here is an OPA observation yet.
+Selected commands below were executed against that executable on 2026-10-31.
+The list is retained as a reproducible starting point; it is not a complete
+conformance suite.
 
 MoonReGo's own evaluator checks are separate from this OPA run. On 2026-10-24,
 `moon test eval --deny-warn --target native` passed 50/50 tests, including the
@@ -57,6 +63,22 @@ opa eval --format raw --data conformance/opa/else.rego --input conformance/opa/e
 
 ## Unverified expectations
 
+### Observed reference results on 2026-10-31
+
+The first eight named positive `every` rules returned `true` (exit 0).
+`blocked_set_every` and `undefined_every` produced no raw value (exit 0);
+blocked array and object cases with `--fail` exited 1. The `else` decisions
+were `primary`, `secondary`, `fallback`, and `false_stops` was `false`.
+OPA rejected `not every` at parse time and the duplicate-binder module at
+compile time (`var item declared above`). After changing the set-pair fixture
+to use both variables, it evaluated to `true` (exit 0). The query
+`every x in input.value { x == x }` against the non-collection fixture was
+`undefined` (exit 0). A previous query using an unused variable instead failed
+compile-time unused-variable checking, so it is not evidence of domain behavior.
+MoonReGo fixes for duplicate binders, set-pair bindings and dynamic
+non-collection domains are covered by its local regression tests; this list
+alone is not a full cross-engine differential suite.
+
 - `array_every`, `object_every`, `set_every`, `object_value_every`, all three
   `empty_*_every` rules, and `outer_binding` should produce `true`.
 - The blocked array/object inputs, `blocked_set_every`, and `undefined_every`
@@ -64,16 +86,13 @@ opa eval --format raw --data conformance/opa/else.rego --input conformance/opa/e
 - Record whether `not every` is rejected by `opa check`, whether two-variable
   iteration over a set is accepted, and the actual non-collection error stage
   and code. Do not infer these details from rolling documentation.
-- The same-name key/value binder fixture records whether OPA accepts the
-  policy and whether unequal key/value pairs make the universal expression
-  undefined. MoonReGo currently treats the repeated name as one variable and
-  requires the pair values to be equal; that interpretation is not yet
-  confirmed against OPA v1.21.4.
+- OPA rejects the same named key/value binder; MoonReGo now reports a compile
+  diagnostic for that case.
 - The ordered else fixture is expected to return `primary`, `secondary`,
   and `fallback` for the three inputs, and `false` for `false_stops`.
-  These are expectations, not observed OPA results.
+  These values have now been observed in OPA as recorded above.
 
 The [published Rego grammar](https://www.openpolicyagent.org/docs/policy-reference)
 defines an `every` body as a `query`, whose first production is a required
 `literal`. MoonReGo's parser therefore rejects an empty `every` body. The
-explicit OPA v1.21.4 fixture run remains pending.
+separate empty-body OPA v1.21.4 fixture run remains pending.

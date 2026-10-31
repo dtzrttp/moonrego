@@ -59,10 +59,11 @@ named parameters have an initial implementation, including default functions
 with literal values; patterns, default comprehension values,
 qualified calls and function-associated else are still missing. Functions, with, rule
 reference heads, many operations and built-ins are not
-complete. Existing first-party tests do not establish OPA parity. OPA v1.21.4
-was not available locally during the previous oracle attempt, so the capability
-inventory, independent oracle outputs, and upstream conformance runs are
-pending. Do not state that the full endpoint has been achieved.
+complete. OPA v1.21.4 was downloaded and verified on 2026-10-31. Its current
+capabilities report 206 built-ins. Selected oracle cases have been run, but the
+item-by-item capability audit, comprehensive differential tests and upstream
+conformance runs remain pending. Do not state that the full endpoint has been
+achieved.
 
 References: [Rego grammar and policy reference](https://www.openpolicyagent.org/docs/policy-reference),
 [policy language semantics](https://www.openpolicyagent.org/docs/policy-language), and

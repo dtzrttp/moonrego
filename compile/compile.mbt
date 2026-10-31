@@ -852,7 +852,17 @@ fn check_expression(
       }
       safe
     }
-    @syntax.Expr::Every(key_name, value_name, domain, body, _) => {
+    @syntax.Expr::Every(key_name, value_name, domain, body, span) => {
+      if key_name == Some(value_name) && value_name != "_" {
+        diagnostics.push(
+          @diagnostic.Diagnostic::error(
+            @diagnostic.Stage::Compile,
+            "rego_compile_error",
+            "var \{value_name} declared above",
+            span,
+          ),
+        )
+      }
       let domain_safe = check_expression(domain, bound, diagnostics, functions)
       let local_bound = bound.copy()
       match key_name {

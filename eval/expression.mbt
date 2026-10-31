@@ -266,6 +266,17 @@ fn eval_every(
   environment : Environment,
   context : EvalContext,
 ) -> Array[(Environment, @value.Value)] {
+  if key_name == Some(value_name) && value_name != "_" {
+    context.diagnostics.push(
+      @diagnostic.Diagnostic::error(
+        @diagnostic.Stage::Compile,
+        "rego_compile_error",
+        "var \{value_name} declared above",
+        span,
+      ),
+    )
+    return []
+  }
   guard eval_value(domain, environment, context) is Some(domain_value) else {
     return []
   }
@@ -312,48 +323,24 @@ fn eval_every(
         }
       }
     @value.Value::Set(items) =>
-      match key_name {
-        Some(_) => {
-          context.diagnostics.push(
-            @diagnostic.Diagnostic::error(
-              @diagnostic.Stage::Eval,
-              "rego_unsupported_feature",
-              "two-variable every over sets is outside the supported subset",
-              span,
-            ),
+      for item in items {
+        if passes {
+          passes = eval_every_item(
+            key_name,
+            value_name,
+            Some(item),
+            item,
+            body,
+            span,
+            environment,
+            context,
           )
-          return []
-        }
-        None =>
-          for item in items {
-            if passes {
-              passes = eval_every_item(
-                None,
-                value_name,
-                None,
-                item,
-                body,
-                span,
-                environment,
-                context,
-              )
-              if context.diagnostics.length() > 0 {
-                return []
-              }
-            }
+          if context.diagnostics.length() > 0 {
+            return []
           }
+        }
       }
-    _ => {
-      context.diagnostics.push(
-        @diagnostic.Diagnostic::error(
-          @diagnostic.Stage::Eval,
-          "rego_type_error",
-          "every domain must be an array, object, or set",
-          domain.span(),
-        ),
-      )
-      return []
-    }
+    _ => return []
   }
   if passes {
     [(environment, @value.Value::boolean(true))]
@@ -375,19 +362,6 @@ fn eval_every_item(
 ) -> Bool {
   if !context.charge(span) {
     return false
-  }
-  if key_name == Some(value_name) {
-    match key_value {
-      Some(key) => {
-        if !key.equal(item) {
-          return false
-        }
-        let local_environment = environment.bind_local(value_name, item)
-        let rows = eval_body(body, local_environment, context)
-        return rows.length() > 0
-      }
-      None => return false
-    }
   }
   let local_environment = match (key_name, key_value) {
     (Some(name), Some(key)) => environment.bind_local(name, key)

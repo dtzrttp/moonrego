@@ -226,7 +226,7 @@ test "every pair iterates object keys and values" {
 }
 
 ///|
-test "every pair with the same binder requires equal key and value" {
+test "every pair rejects the same named binder" {
   let equal_result = @eval.eval_query(
     "every item, item in input.items { item == \"same\" }",
     @value.Value::Object({
@@ -234,9 +234,9 @@ test "every pair with the same binder requires equal key and value" {
     }),
     @eval.EvalOptions::new(1000),
   )
-  assert_eq(equal_result.diagnostics().length(), 0)
-  assert_eq(equal_result.values().length(), 1)
-  assert_true(equal_result.values()[0].equal(@value.Value::boolean(true)))
+  assert_eq(equal_result.diagnostics().length(), 1)
+  assert_eq(equal_result.diagnostics()[0].code(), "rego_compile_error")
+  assert_eq(equal_result.values().length(), 0)
 
   let different_result = @eval.eval_query(
     "every item, item in input.items { item == \"value\" }",
@@ -245,7 +245,8 @@ test "every pair with the same binder requires equal key and value" {
     }),
     @eval.EvalOptions::new(1000),
   )
-  assert_eq(different_result.diagnostics().length(), 0)
+  assert_eq(different_result.diagnostics().length(), 1)
+  assert_eq(different_result.diagnostics()[0].code(), "rego_compile_error")
   assert_eq(different_result.values().length(), 0)
 }
 
@@ -321,33 +322,29 @@ test "every over a set fails when a member fails the body" {
 }
 
 ///|
-test "every rejects two-variable set iteration" {
+test "every binds both set iteration variables to each member" {
   let result = @eval.eval_query(
-    "every key, value in input.tags { true }",
+    "every key, value in input.tags { key == value }",
     @value.Value::Object({
       "tags": @value.Value::set([@value.Value::string("public")]),
     }),
     @eval.EvalOptions::new(1000),
   )
-  assert_eq(result.values().length(), 0)
-  assert_eq(result.diagnostics().length(), 1)
-  assert_eq(result.diagnostics()[0].code(), "rego_unsupported_feature")
+  assert_eq(result.values().length(), 1)
+  assert_eq(result.diagnostics().length(), 0)
 }
 
 ///|
-test "every reports an error for a non-collection domain" {
+test "every with a dynamically resolved non-collection is undefined" {
   let result = @eval.eval_query(
-    "every value in 42 { true }",
-    @value.Value::null(),
+    "every value in input.value { value == value }",
+    @value.Value::Object({
+      "value": @value.Value::number(@value.Number::parse("42").unwrap()),
+    }),
     @eval.EvalOptions::new(1000),
   )
   assert_eq(result.values().length(), 0)
-  assert_eq(result.diagnostics().length(), 1)
-  assert_eq(result.diagnostics()[0].code(), "rego_type_error")
-  assert_eq(
-    result.diagnostics()[0].message(),
-    "every domain must be an array, object, or set",
-  )
+  assert_eq(result.diagnostics().length(), 0)
 }
 
 ///|

@@ -227,6 +227,16 @@ test "object comprehension key and value use local bindings" {
 }
 
 ///|
+test "every rejects duplicate named binders at compile time" {
+  let diagnostics = @compile.compile_source(
+    "package p\nallow if { every item, item in [1] { item == 1 } }", "duplicate-every.rego",
+  )
+  assert_true(
+    diagnostics.any(fn(diagnostic) { diagnostic.code() == "rego_compile_error" }),
+  )
+}
+
+///|
 test "default function definitions enforce arity and uniqueness" {
   let arity = @compile.compile_source(
     "package p\ndefault f(_) := 0\nf(x, y) := x", "default-arity.rego",

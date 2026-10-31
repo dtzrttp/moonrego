@@ -17,8 +17,8 @@ documents were used to understand language behavior and choose examples:
 No OPA source code, upstream test cases, or third-party policy samples are
 included. The eleven conformance cases and the policies and input data under
 `conformance/opa/` are first-party examples based on documented semantics. The
-OPA v1.21.4 release is the intended one-time semantic oracle; its executable is
-not installed locally and the oracle cases have not been run. The
+OPA v1.21.4 release is the semantic oracle; its verified executable was acquired
+outside the repository and selected cases were run on 2026-10-31. The
 authorization/configuration policies and JSON inputs under `examples/` are
 original project content.
 
